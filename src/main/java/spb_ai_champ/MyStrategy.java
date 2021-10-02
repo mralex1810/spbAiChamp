@@ -334,7 +334,6 @@ public class MyStrategy {
                                         moveActions.add(new MoveAction(planetIndex, nextPlanetIndex, sendCount, Resource.STONE));
                                         sentStone[nextPlanetIndex] += sendCount;
                                         myWorkers -= sendCount;
-                                        used[planetIndex] = true;
                                     }
                                 }
                             }
@@ -467,8 +466,7 @@ public class MyStrategy {
         int lookingPlanets = planets.length;
         for (int firstStagePlanetIndex : myBuildingPlans.get(firstStageBuilding(building))) {
             int loop = switch (building) {
-                case FOUNDRY -> 3;
-                case FURNACE -> 2;
+                case FOUNDRY -> 2;
                 default -> 1;
             };
             for (int looped = 0; looped < loop; looped++) {
