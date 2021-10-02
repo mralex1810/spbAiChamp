@@ -34,8 +34,6 @@ public class MyStrategy {
     int enemyPlanet;
     int oreLimit;
     PriorityQueue<Event> events;
-    int[] circleLimits;
-    int[] circleRobots;
     ArrayList<Integer> myResourcePlanets = new ArrayList<>();
 
 
@@ -144,22 +142,6 @@ public class MyStrategy {
             System.out.println(myBuildingPlans);
         } //fill myBuildingPlans
         {
-            /*
-            oreCircle = 50; // 0
-            chipCircle = 20; // 1
-            accumulatorCircle = 10; // 2
-            replicatorCircle = 10; // 3
-            sandCircle = 50; // 4
-            organicCircle = 50; // 5
-            chipReplicatorCircle = 10; // 6
-            accumulatorReplicatorCircle = 5; // 7
-            plasticCircle = 10; // 8
-            siliconCircle = 10; // 9
-            */
-            circleLimits = new int[]{200, 50, 50, 50, 50, 50, 40, 30, 40, 30};
-            circleRobots = new int[circleLimits.length];
-        } // group
-        {
             for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
                 for (int myPlanetIndex = 0; myPlanetIndex < planets.length; myPlanetIndex++) {
                     if (planetsGraph[planetIndex][myPlanetIndex] != -1 && plannedBuilding[myPlanetIndex] != null) {
@@ -222,11 +204,6 @@ public class MyStrategy {
         if (phase == 0 && built == buildPlanned) {
             phase = 1;
         }
-        int replicatorPlanet = myBuildingPlans.get(BuildingType.REPLICATOR).get(0);
-        int replicatorPlanetRobots = 0;
-        for (WorkerGroup workerGroup : planets[replicatorPlanet].getWorkerGroups()) {
-            replicatorPlanetRobots += workerGroup.getNumber();
-        }
 
         if (phase == 1) {
             for (int planetIndex : myPlanets) {
@@ -240,7 +217,7 @@ public class MyStrategy {
 
                 if (planets[planetIndex].getBuilding() != null && myWorkers > 0 && planetIndex != homePlanet) {
                     BuildingType buildingType = planets[planetIndex].getBuilding().getBuildingType();
-                    Resource planetResourse = quarryProperties.get(buildingType).getProduceResource();
+                    Resource planetResource = quarryProperties.get(buildingType).getProduceResource();
                     if (buildingType.tag >= 4) {
                         int toWork = productionForRes(planets[planetIndex].getResources(),
                                 quarryProperties.get(buildingType).getWorkResources());
@@ -256,7 +233,7 @@ public class MyStrategy {
                     }
                     TreeMap<Integer, Float> calcValue = new TreeMap<>();
                     for (int endPlanetIndex : logisticGraph.get(planetIndex)) {
-                        if (planets[planetIndex].getResources().getOrDefault(planetResourse, 0) > myWorkers / 3) {
+                        if (planets[planetIndex].getResources().getOrDefault(planetResource, 0) > myWorkers / 3) {
                             calcValue.put(endPlanetIndex,
                                     calcShipmentValue(planetIndex, endPlanetIndex, myWorkers / DIVISOR_CONSTANT, false)
                             );
@@ -380,10 +357,6 @@ public class MyStrategy {
 
     }
 
-    private float siqmoid(float v) {
-        return 1f / (1f + (float) Math.exp(v));
-    }
-
     private BuildingType producedBuilding(Resource resource) {
         if (resource == null) {
             return null;
@@ -418,17 +391,6 @@ public class MyStrategy {
             case FURNACE -> BuildingType.CAREER;
             case BIOREACTOR -> BuildingType.FARM;
             default -> throw new IllegalStateException("Unexpected value: " + building);
-        };
-    }
-
-    private BuildingType resourceUsage(Resource resource) {
-        return switch (resource) {
-            case STONE, METAL, ORE -> null;
-            case SAND -> BuildingType.FURNACE;
-            case ORGANICS -> BuildingType.BIOREACTOR;
-            case SILICON -> BuildingType.CHIP_FACTORY;
-            case PLASTIC -> BuildingType.ACCUMULATOR_FACTORY;
-            case CHIP, ACCUMULATOR -> BuildingType.REPLICATOR;
         };
     }
 
@@ -468,20 +430,19 @@ public class MyStrategy {
             Resource resToSend = quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
             value += (1f / 1000f) * (calcShipmentScore(endPlanetIndex, resToSend, robots) -
                     calcShipmentScore(endPlanetIndex, resToSend, 0));
-            value += -(1f / 50f) * planetsDistance[startPlanetIndex][endPlanetIndex];
-            value += (1f / 10f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
+            value += -(1f / 70f) * planetsDistance[startPlanetIndex][endPlanetIndex];
+            value += (1f / 15f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
         } else {
             Resource resToSend = quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
-            //value += (1f / 10000f) * planets[endPlanetIndex].getResources().getOrDefault(resToSend, 0);
-            value += -(1f / 30f) * planetsDistance[startPlanetIndex][endPlanetIndex];
+            value += (1f / 1000000f) * planets[endPlanetIndex].getResources().getOrDefault(resToSend, 0);
+            value += -(1f / 50f) * planetsDistance[startPlanetIndex][endPlanetIndex];
 
         }
         return value;
     }
 
     private float calcShipmentScore(int planetIndex, Resource resource, int robots) {
-        Map<Resource, Integer> planetResources = new TreeMap<>();
-        planets[planetIndex].getResources().forEach(planetResources::put);
+        Map<Resource, Integer> planetResources = new TreeMap<>(planets[planetIndex].getResources());
         planetResources.put(resource, planetResources.getOrDefault(resource, 0) + robots);
         return productionForRes(planetResources,
                 quarryProperties.get(planets[planetIndex].getBuilding().getBuildingType()).getWorkResources());
@@ -579,55 +540,6 @@ public class MyStrategy {
             }
         }
         myBuildingPlans.get(building).add(maxi);
-    }
-
-    private int findPlanetToSendResource(int senderPlanetIndex, Resource resource) {
-        if (resource == Resource.STONE) {
-            return -1;
-        }
-        if (resource == Resource.ORE) {
-            int[] values = new int[1];
-            for (int i = 0; i < 1; i++) {
-                int foundryPlanetIndex = myBuildingPlans.get(BuildingType.FOUNDRY).get(i);
-                Map<Resource, Integer> resources = planets[foundryPlanetIndex].getResources();
-                values[i] -= 10 * planetsDistance[senderPlanetIndex][foundryPlanetIndex];
-                values[i] += 5 * resources.getOrDefault(Resource.ORE, 0);
-                values[i] += 4 * resources.getOrDefault(Resource.METAL, 0);
-            }
-            return myBuildingPlans.get(BuildingType.FOUNDRY).get(0);
-            /*
-            if (values[0] > values[1]) {
-                return myBuildingPlans.get(BuildingType.FOUNDRY).get(0);
-            }
-            return myBuildingPlans.get(BuildingType.FOUNDRY).get(1);
-            */
-
-        }
-        if (resource == Resource.METAL) {
-            int chipFactoryValue = 0;
-            int accumulatorFactoryValue = 0;
-            int replicatorFactoryValue = 0;
-
-            chipFactoryValue -= 3 * myResources.get(Resource.CHIP);
-            chipFactoryValue += 2 * planets[myBuildingPlans.get(BuildingType.CHIP_FACTORY).get(0)].getResources().getOrDefault(Resource.SILICON, 0);
-            chipFactoryValue -= 3 * planets[myBuildingPlans.get(BuildingType.CHIP_FACTORY).get(0)].getResources().getOrDefault(Resource.METAL, 0);
-
-            accumulatorFactoryValue -= 5 * myResources.get(Resource.ACCUMULATOR);
-            accumulatorFactoryValue += 2 * planets[myBuildingPlans.get(BuildingType.ACCUMULATOR_FACTORY).get(0)].getResources().getOrDefault(Resource.PLASTIC, 0);
-            accumulatorFactoryValue -= 3 * planets[myBuildingPlans.get(BuildingType.ACCUMULATOR_FACTORY).get(0)].getResources().getOrDefault(Resource.METAL, 0);
-
-            replicatorFactoryValue += 2 * planets[myBuildingPlans.get(BuildingType.REPLICATOR).get(0)].getResources().getOrDefault(Resource.CHIP, 0) +
-                    planets[myBuildingPlans.get(BuildingType.REPLICATOR).get(0)].getResources().getOrDefault(Resource.ACCUMULATOR, 0);
-            replicatorFactoryValue -= 4 * planets[myBuildingPlans.get(BuildingType.REPLICATOR).get(0)].getResources().getOrDefault(Resource.METAL, 0);
-
-            if (replicatorFactoryValue >= accumulatorFactoryValue && replicatorFactoryValue >= chipFactoryValue) {
-                return myBuildingPlans.get(BuildingType.REPLICATOR).get(0);
-            } else if (chipFactoryValue >= accumulatorFactoryValue) {
-                return myBuildingPlans.get(BuildingType.CHIP_FACTORY).get(0);
-            }
-            return myBuildingPlans.get(BuildingType.ACCUMULATOR_FACTORY).get(0);
-        }
-        return myBuildingPlans.get(resourceUsage(resource)).get(0);
     }
 
     private boolean compareResources(Map<Resource, Integer> a, Map<Resource, Integer> b) {
