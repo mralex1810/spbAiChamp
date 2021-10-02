@@ -334,7 +334,6 @@ public class MyStrategy {
                                         moveActions.add(new MoveAction(planetIndex, nextPlanetIndex, sendCount, Resource.STONE));
                                         sentStone[nextPlanetIndex] += sendCount;
                                         myWorkers -= sendCount;
-                                        used[planetIndex] = true;
                                     }
                                 }
                             }
