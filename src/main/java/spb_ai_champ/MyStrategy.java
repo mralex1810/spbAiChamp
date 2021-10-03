@@ -210,15 +210,15 @@ public class MyStrategy {
 
         if (phase == 1) {
             for (int planetIndex : myPlanets) {
-                int myWorkers = 0;
-                for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
-                    myWorkers += workerGroup.getPlayerIndex() == game.getMyIndex() ? workerGroup.getNumber() : 0;
+                int myWorkers = countRobotsOnPlanet(planetIndex);
+                myWorkers -= staticDefenders;
+
+                if (myWorkers <= 0) {
+                    continue;
                 }
-                myWorkers = Math.max(0, myWorkers - staticDefenders);
+                int DIVISOR_CONSTANT = 2 + random.nextInt(2);
 
-                int DIVISOR_CONSTANT = 2;
-
-                if (planets[planetIndex].getBuilding() != null && myWorkers > 0 && planetIndex != homePlanet) {
+                if (planets[planetIndex].getBuilding() != null && planetIndex != homePlanet) {
                     BuildingType buildingType = planets[planetIndex].getBuilding().getBuildingType();
                     Resource planetResource = quarryProperties.get(buildingType).getProduceResource();
                     if (buildingType.tag >= 4) {
@@ -234,9 +234,10 @@ public class MyStrategy {
                     if (myWorkers <= 0) {
                         continue;
                     }
+
                     TreeMap<Integer, Float> calcValue = new TreeMap<>();
                     for (int endPlanetIndex : logisticGraph.get(planetIndex)) {
-                        if (planets[planetIndex].getResources().getOrDefault(planetResource, 0) > myWorkers / 3) {
+                        if (planets[planetIndex].getResources().getOrDefault(planetResource, 0) > myWorkers / DIVISOR_CONSTANT) {
                             calcValue.put(endPlanetIndex,
                                     calcShipmentValue(planetIndex, endPlanetIndex, myWorkers / DIVISOR_CONSTANT, false)
                             );
@@ -275,56 +276,57 @@ public class MyStrategy {
                     shipment(planetIndex);
                 }
             }
-        }
 
-        for (BuildingType buildingType : BuildingType.values()) {
-            for (int planetIndex : myBuildingPlans.get(buildingType)) {
-                if (planets[planetIndex].getResources().getOrDefault(Resource.STONE, 0) >=
-                        quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) &&
-                        planets[planetIndex].getBuilding() == null) {
-                    buildActions.add(new BuildingAction(planetIndex, buildingType));
-                }
-            }
-        }
-        for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
-            Planet planet = planets[planetIndex];
-            int myWorkers = 0;
-            for (WorkerGroup workerGroup : planet.getWorkerGroups()) {
-                if (plannedBuilding[planetIndex] != null && planets[planetIndex].getResources().getOrDefault(Resource.STONE, 0) >=
-                        quarryProperties.get(plannedBuilding[planetIndex]).getBuildResources().get(Resource.STONE) &&
-                        planets[planetIndex].getBuilding() == null) {
-                    buildActions.add(new BuildingAction(planetIndex, plannedBuilding[planetIndex]));
-                    built++;
-                }
-                if (workerGroup.getPlayerIndex() == game.getMyIndex()) {
-                    myWorkers += workerGroup.getNumber();
-                    for (Resource resource : Resource.values()) {
-                        myResources.put(resource, myResources.get(resource) + planet.getResources().getOrDefault(resource, 0));
+        } else {
+            for (BuildingType buildingType : BuildingType.values()) {
+                for (int planetIndex : myBuildingPlans.get(buildingType)) {
+                    if (planets[planetIndex].getResources().getOrDefault(Resource.STONE, 0) >=
+                            quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) &&
+                            planets[planetIndex].getBuilding() == null) {
+                        buildActions.add(new BuildingAction(planetIndex, buildingType));
                     }
                 }
             }
-            myWorkers -= staticDefenders;
-            if (phase == 0) {
-                if (myWorkers > 0) {
-                    if (planetIndex != homePlanet) {
-                        moveActions.add(new MoveAction(planetIndex, homePlanet, myWorkers, null));
-                        used[planetIndex] = true;
-                    } else {
-                        for (BuildingType buildingType : BuildingType.values()) {
-                            for (int nextPlanetIndex : myBuildingPlans.get(buildingType)) {
-                                if (planets[nextPlanetIndex].getBuilding() == null) {
-                                    int sendCount = Math.min(myWorkers,
-                                            quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) -
-                                                    planets[nextPlanetIndex].getResources().getOrDefault(Resource.STONE, 0));
-                                    sendCount = Math.max(sendCount, 0);
-                                    sendCount = Math.min(sendCount, game.getMaxFlyingWorkerGroups());
-                                    if (planet.getResources().getOrDefault(Resource.STONE, 0) >= sendCount &&
-                                            sentStone[nextPlanetIndex] < quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) &&
-                                            !used[planetIndex]) {
-                                        moveActions.add(new MoveAction(planetIndex, nextPlanetIndex, sendCount, Resource.STONE));
-                                        sentStone[nextPlanetIndex] += sendCount;
-                                        myWorkers -= sendCount;
-                                        used[planetIndex] = true;
+            for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
+                Planet planet = planets[planetIndex];
+                int myWorkers = 0;
+                for (WorkerGroup workerGroup : planet.getWorkerGroups()) {
+                    if (plannedBuilding[planetIndex] != null && planets[planetIndex].getResources().getOrDefault(Resource.STONE, 0) >=
+                            quarryProperties.get(plannedBuilding[planetIndex]).getBuildResources().get(Resource.STONE) &&
+                            planets[planetIndex].getBuilding() == null) {
+                        buildActions.add(new BuildingAction(planetIndex, plannedBuilding[planetIndex]));
+                        built++;
+                    }
+                    if (workerGroup.getPlayerIndex() == game.getMyIndex()) {
+                        myWorkers += workerGroup.getNumber();
+                        for (Resource resource : Resource.values()) {
+                            myResources.put(resource, myResources.get(resource) + planet.getResources().getOrDefault(resource, 0));
+                        }
+                    }
+                }
+                myWorkers -= staticDefenders;
+                if (phase == 0) {
+                    if (myWorkers > 0) {
+                        if (planetIndex != homePlanet) {
+                            moveActions.add(new MoveAction(planetIndex, homePlanet, myWorkers, null));
+                            used[planetIndex] = true;
+                        } else {
+                            for (BuildingType buildingType : BuildingType.values()) {
+                                for (int nextPlanetIndex : myBuildingPlans.get(buildingType)) {
+                                    if (planets[nextPlanetIndex].getBuilding() == null) {
+                                        int sendCount = Math.min(myWorkers,
+                                                quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) -
+                                                        planets[nextPlanetIndex].getResources().getOrDefault(Resource.STONE, 0));
+                                        sendCount = Math.max(sendCount, 0);
+                                        sendCount = Math.min(sendCount, game.getMaxFlyingWorkerGroups());
+                                        if (planet.getResources().getOrDefault(Resource.STONE, 0) >= sendCount &&
+                                                sentStone[nextPlanetIndex] < quarryProperties.get(buildingType).getBuildResources().get(Resource.STONE) &&
+                                                !used[planetIndex]) {
+                                            moveActions.add(new MoveAction(planetIndex, nextPlanetIndex, sendCount, Resource.STONE));
+                                            sentStone[nextPlanetIndex] += sendCount;
+                                            myWorkers -= sendCount;
+                                            used[planetIndex] = true;
+                                        }
                                     }
                                 }
                             }
@@ -336,11 +338,13 @@ public class MyStrategy {
 
         MoveAction[] moveActionsArray = new MoveAction[moveActions.size()];
         BuildingAction[] buildingActionsArray = new BuildingAction[buildActions.size()];
+        System.out.println(moveActions);
         return new Action(moveActions.toArray(moveActionsArray), buildActions.toArray(buildingActionsArray));
     }
 
     private void shipment(int planetIndex) {
-        int planetRobots = Math.max(0, Arrays.stream(planets[planetIndex].getWorkerGroups()).mapToInt(WorkerGroup::getNumber).sum() - staticDefenders);
+        int planetRobots = countRobotsOnPlanet(planetIndex) - staticDefenders;
+        if (planetRobots / myResourcePlanets.size() <= 0) return;
         for (int indexPlanet : myResourcePlanets) {
             moveActions.add(new MoveAction(planetIndex, indexPlanet, planetRobots / myResourcePlanets.size(), null));
         }
@@ -417,7 +421,7 @@ public class MyStrategy {
     private int countRobotsOnPlanet(int planetIndex) {
         int robots = 0;
         for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
-            robots += workerGroup.getNumber();
+            robots += workerGroup.getPlayerIndex() == game.getMyIndex() ? workerGroup.getNumber() : 0;
         }
         return robots;
     }
@@ -426,9 +430,9 @@ public class MyStrategy {
         float value = 0;
         if (!reversed) {
             Resource resToSend = quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
-            value += (1f / 250f) * (calcShipmentScore(endPlanetIndex, resToSend, robots) -
+            value += (1f / 150f) * (calcShipmentScore(endPlanetIndex, resToSend, robots) -
                     calcShipmentScore(endPlanetIndex, resToSend, 0));
-            value += -(1f / 80f) * planetsDistance[startPlanetIndex][endPlanetIndex];
+            value += -(1f / 100f) * planetsDistance[startPlanetIndex][endPlanetIndex];
             value += (1f / 15f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
         } else {
             Resource resToSend = quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
