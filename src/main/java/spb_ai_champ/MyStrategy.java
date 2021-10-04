@@ -191,6 +191,17 @@ public class MyStrategy {
         }
     }
 
+    private void getEvents() {
+
+    }
+
+    private boolean setEvent(MoveAction moveAction) {
+        if (planetsGraph[moveAction.getStartPlanet()][moveAction.getTargetPlanet()] != -1){
+
+            return true;
+        }
+    }
+
 
     public Action getAction(Game game) {
         this.game = game;
@@ -336,9 +347,9 @@ public class MyStrategy {
             }
         }
 
+        moveActions.removeIf(it -> setEvent(it));
         MoveAction[] moveActionsArray = new MoveAction[moveActions.size()];
         BuildingAction[] buildingActionsArray = new BuildingAction[buildActions.size()];
-        System.out.println(moveActions);
         return new Action(moveActions.toArray(moveActionsArray), buildActions.toArray(buildingActionsArray));
     }
 
@@ -556,7 +567,5 @@ public class MyStrategy {
         }
         return ans;
     }
-
-
 }
 

@@ -4,34 +4,33 @@ public class Event {
 
     private final int tick;
     private final int planet;
-    private final int circle;
-
+    private final int endPlanet;
+    private final Resource resource;
     private final int robots;
 
-    public Event(int tick, int planet, int circle, int robots) {
+    public Event(int tick, int planet, int endPlanet, Resource resource, int robots) {
         this.tick = tick;
         this.planet = planet;
-        this.circle = circle;
+        this.endPlanet = endPlanet;
+        this.resource = resource;
         this.robots = robots;
 
     }
 
-    public Event(Event event, int delay) {
+    public Event(Event event, int delay, int planet, int robots) {
         tick = event.getTick() + delay;
-        planet = event.getPlanet();
-        circle = event.getCircle();
-        robots = event.getRobots();
-    }
-
-    public Event(Event event, int delay, int robots) {
-        tick = event.getTick() + delay;
-        planet = event.getPlanet();
-        circle = event.getCircle();
+        this.planet = planet;
         this.robots = robots;
+        resource = event.getResource();
+        endPlanet = event.getEndPlanet();
     }
 
-    public int getCircle() {
-        return circle;
+    public int getEndPlanet() {
+        return endPlanet;
+    }
+
+    public Resource getResource() {
+        return resource;
     }
 
     public int getTick() {
