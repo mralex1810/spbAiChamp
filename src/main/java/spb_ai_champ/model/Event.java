@@ -1,6 +1,6 @@
 package spb_ai_champ.model;
 
-public class Event {
+public class Event implements Comparable<Event> {
 
     private final int tick;
     private final int planet;
@@ -43,5 +43,21 @@ public class Event {
 
     public int getRobots() {
         return robots;
+    }
+
+    @Override
+    public String toString(){
+        return "{tick: " + tick + " planet: " + planet +
+                " endPlanet: " + endPlanet + " Resource: " + resource + " robots: " + robots + "}";
+    }
+
+    @Override
+    public int compareTo(Event o) {
+        if (tick == o.getTick()) {
+            if (planet < o.getPlanet()) return -1;
+            else if (planet > o.getPlanet()) return 1;
+            return 0;
+        } else if (tick < o.getTick()) return -1;
+        return 1;
     }
 }
