@@ -1,6 +1,7 @@
 package spb_ai_champ;
 
 import spb_ai_champ.model.*;
+import spb_ai_champ.myClasses.Event;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ public class MyStrategy {
     ArrayList<Integer> myResourcePlanets = new ArrayList<>();
 
 
-    private void start() {
+    void start() {
         phase = 0;
         built = 0;
         events = new PriorityQueue<>(1);
@@ -125,7 +126,7 @@ public class MyStrategy {
                         return Integer.compare(planetsDistance[o1][finalPlanetIndex], planetsDistance[o2][finalPlanetIndex]);
                     }
                 };
-                Collections.sort(arrayList, planetDistanceComp);
+                arrayList.sort(planetDistanceComp);
                 int[] arr = new int[planets.length];
                 for (int i = 0; i < planets.length; i++) {
                     arr[i] = arrayList.get(i);
@@ -200,13 +201,13 @@ public class MyStrategy {
 
     }
 
-    private void sendRobotsToMyPlanets() {
+    void sendRobotsToMyPlanets() {
         for (int planetIndex : myPlanets) {
             moveActions.add(new MoveAction(homePlanet, planetIndex, staticDefenders, null));
         }
     }
 
-    private void getEvents(Map<Integer, ArrayList<Event>> eventsMap) {
+    void getEvents(Map<Integer, ArrayList<Event>> eventsMap) {
         while (events.peek() != null && events.peek().getTick() == game.getCurrentTick()) {
             Event event = events.poll();
             eventsMap.putIfAbsent(event.getPlanet(), new ArrayList<>());
@@ -214,7 +215,7 @@ public class MyStrategy {
         }
     }
 
-    private void setEvent(MoveAction moveAction, ArrayList<MoveAction> newMoveActions) {
+    void setEvent(MoveAction moveAction, ArrayList<MoveAction> newMoveActions) {
         if (planetsGraph[moveAction.getStartPlanet()][moveAction.getTargetPlanet()] == -1) {
             int nextPlanet = findNextPlanet(moveAction.getStartPlanet(), moveAction.getTargetPlanet());
             events.add(new Event(game.getCurrentTick() + planetsDistance[moveAction.getStartPlanet()][nextPlanet],
@@ -227,7 +228,7 @@ public class MyStrategy {
         }
     }
 
-    private int findNextPlanet(int planet, int endPlanet) {
+    int findNextPlanet(int planet, int endPlanet) {
         int minDistance = 1000;
         int nextPlanet = 0;
         for (int i = 1; i < planets.length; i++) {
@@ -405,8 +406,8 @@ public class MyStrategy {
         return new Action(moveActions.toArray(moveActionsArray), buildActions.toArray(buildingActionsArray));
     }
 
-    private int findPlanetToSendRobots(int planetIndex, int robots) {
-        for(int myPlanetIndex : myPlanets) {
+    int findPlanetToSendRobots(int planetIndex, int robots) {
+        for (int myPlanetIndex : myPlanets) {
             int lack = staticDefenders - countRobotsOnPlanet(myPlanetIndex);
             if (lack > 0) {
                 int sendCount = Math.min(robots, lack);
@@ -422,7 +423,7 @@ public class MyStrategy {
         return robots;
     }
 
-    private int findPlanetToAttack(int planetIndex) {
+    int findPlanetToAttack(int planetIndex) {
         for (int i = 0; i < planets.length; i++) {
             int thisPlanet = nearPlanets[planetIndex][i];
             if (isEnemyPlanet(thisPlanet)) {
@@ -432,7 +433,7 @@ public class MyStrategy {
         return myBuildingPlans.get(BuildingType.REPLICATOR).get(0);
     }
 
-    private boolean isEnemyPlanet(int planetIndex) {
+    boolean isEnemyPlanet(int planetIndex) {
         for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
             if (workerGroup.getPlayerIndex() != game.getMyIndex()) {
                 return true;
@@ -441,16 +442,16 @@ public class MyStrategy {
         return false;
     }
 
-    private void countMyRobots() {
+    void countMyRobots() {
         for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
             myRobots += countRobotsOnPlanet(planetIndex);
         }
         for (FlyingWorkerGroup flyingWorkerGroup : game.getFlyingWorkerGroups()) {
-             myRobots += flyingWorkerGroup.getPlayerIndex() == game.getMyIndex() ? flyingWorkerGroup.getNumber() : 0;
+            myRobots += flyingWorkerGroup.getPlayerIndex() == game.getMyIndex() ? flyingWorkerGroup.getNumber() : 0;
         }
     }
 
-    private void checkFlyingGroups() {
+    void checkFlyingGroups() {
         ArrayList<MoveAction> newMoveActions = new ArrayList<>();
         moveActions.sort(Comparator.comparingInt(MoveAction::getWorkerNumber));
         Collections.reverse(moveActions);
@@ -476,7 +477,7 @@ public class MyStrategy {
         moveActions = newMoveActions;
     }
 
-    private void shipment(int planetIndex, int myWorkers) {
+    void shipment(int planetIndex, int myWorkers) {
         int planetRobots = myWorkers;
         if (planetRobots / myResourcePlanets.size() <= 0) return;
         for (int indexPlanet : myResourcePlanets) {
@@ -485,7 +486,7 @@ public class MyStrategy {
 
     }
 
-    private BuildingType producedBuilding(Resource resource) {
+    BuildingType producedBuilding(Resource resource) {
         if (resource == null) {
             return null;
         }
@@ -503,7 +504,7 @@ public class MyStrategy {
         };
     }
 
-    private Resource resourceOfFirstStageBuilding(BuildingType buildingType) {
+    Resource resourceOfFirstStageBuilding(BuildingType buildingType) {
         return switch (buildingType) {
             case QUARRY -> Resource.STONE;
             case MINES -> Resource.ORE;
@@ -513,7 +514,7 @@ public class MyStrategy {
         };
     }
 
-    private BuildingType firstStageBuilding(BuildingType building) {
+    BuildingType firstStageBuilding(BuildingType building) {
         return switch (building) {
             case FOUNDRY -> BuildingType.MINES;
             case FURNACE -> BuildingType.CAREER;
@@ -522,13 +523,13 @@ public class MyStrategy {
         };
     }
 
-    private int productionForRes(Map<Resource, Integer> myResources, Map<Resource, Integer> resourceNeed) {
+    int productionForRes(Map<Resource, Integer> myResources, Map<Resource, Integer> resourceNeed) {
         int[] ans = new int[]{Integer.MAX_VALUE};
         resourceNeed.forEach((k, v) -> ans[0] = Math.min(ans[0], myResources.getOrDefault(k, 0) / v));
         return ans[0];
     }
 
-    private void sort(int[][] array) {
+    void sort(int[][] array) {
         for (int i = 1; i < array.length; i++) {
             int j = i;
             while (j > 0 && (array[j][0] < array[j - 1][0] || (array[j][0] == array[j - 1][0] && array[j][1] < array[j - 1][1]))) {
@@ -540,7 +541,7 @@ public class MyStrategy {
         }
     }
 
-    private int countRobotsOnPlanet(int planetIndex) {
+    int countRobotsOnPlanet(int planetIndex) {
         int robots = 0;
         for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
             robots += workerGroup.getPlayerIndex() == game.getMyIndex() ? workerGroup.getNumber() : 0;
@@ -548,7 +549,7 @@ public class MyStrategy {
         return robots;
     }
 
-    private float calcShipmentValue(int startPlanetIndex, int endPlanetIndex, int robots, boolean reversed) {
+    float calcShipmentValue(int startPlanetIndex, int endPlanetIndex, int robots, boolean reversed) {
         float value = 0;
         if (!reversed) {
             Resource resToSend = quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
@@ -568,7 +569,7 @@ public class MyStrategy {
         return value;
     }
 
-    private float calcShipmentScore(int planetIndex, Resource resource, int robots) {
+    float calcShipmentScore(int planetIndex, Resource resource, int robots) {
         Map<Resource, Integer> planetResources = new TreeMap<>(planets[planetIndex].getResources());
         planetResources.put(resource, planetResources.getOrDefault(resource, 0) + robots);
         if (planets[planetIndex].getBuilding() == null) return 0f;
@@ -576,7 +577,7 @@ public class MyStrategy {
                 quarryProperties.get(planets[planetIndex].getBuilding().getBuildingType()).getWorkResources());
     }
 
-    private void choosePlanetsForFirstStage(BuildingType building, int limit) {
+    void choosePlanetsForFirstStage(BuildingType building, int limit) {
         ArrayList<Integer> resourcesIndexes = myResourceMap.get(resourceOfFirstStageBuilding(building));
         int[][] planetsValue = new int[resourcesIndexes.size()][];
         for (int planetIndex = 0; planetIndex < resourcesIndexes.size(); planetIndex++) {
@@ -591,7 +592,7 @@ public class MyStrategy {
         }
     }
 
-    private void choosePlanetsForSecondStage(BuildingType building) {
+    void choosePlanetsForSecondStage(BuildingType building) {
         int lookingPlanets = planets.length;
         for (int firstStagePlanetIndex : myBuildingPlans.get(firstStageBuilding(building))) {
             int loop = switch (building) {
@@ -633,7 +634,7 @@ public class MyStrategy {
         }
     }
 
-    private void choosePlanetForThirdStage(BuildingType building) {
+    void choosePlanetForThirdStage(BuildingType building) {
         int[] planetValues = new int[planets.length];
         for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
             boolean planned = planetIndex == homePlanet;
@@ -669,7 +670,7 @@ public class MyStrategy {
         myBuildingPlans.get(building).add(maxi);
     }
 
-    private boolean compareResources(Map<Resource, Integer> a, Map<Resource, Integer> b) {
+    boolean compareResources(Map<Resource, Integer> a, Map<Resource, Integer> b) {
         boolean ans = true;
         for (Resource resource : a.keySet()) {
             if (a.get(resource) > b.getOrDefault(resource, 0)) {
@@ -677,6 +678,82 @@ public class MyStrategy {
             }
         }
         return ans;
+    }
+
+    class BuildPlansGenerator {
+
+        Map<BuildingType, ArrayList<Integer>> condition = new TreeMap<>();
+        Map<BuildingType, ArrayList<Integer>> newCondition = new TreeMap<>();
+        Map<BuildingType, ArrayList<Integer>> bestCondition = new TreeMap<>();
+        boolean[] usedPlanet = new boolean[planets.length];
+        float bestValueOfCondition = -100000f;
+
+
+        int getBuildingLimit(BuildingType buildingType) {
+            return switch (buildingType) {
+                case FOUNDRY -> 2;
+                case QUARRY -> 0;
+                default -> 1;
+            };
+
+        }
+
+        float estimateCondition() {
+            float value = 0;
+            for (BuildingType sender : BuildingType.values()) {
+                Resource sendRes = quarryProperties.get(sender).getProduceResource();
+                if (sendRes == null) continue;
+                for (BuildingType recycler : recyclingBuilding.get(sendRes)) {
+                    for (int senderIndex : condition.get(sender)) {
+                        for (int recyclerIndex : condition.get(recycler)) {
+                            value += (- (float) quarryProperties.get(recycler).getWorkResources().get(sendRes) / condition.get(sender).size())
+                                    * planetsDistance[senderIndex][recyclerIndex];
+                        }
+                        value += (1f / 10f) *
+                                (planetsDistance[homePlanet][senderIndex] - planetsDistance[enemyPlanet][senderIndex]);
+                    }
+                }
+            }
+
+            return value;
+        }
+
+        void genFirstStageFirstCond() {
+            for (int i = 1; i < 4; i++) {
+                BuildingType buildingType = BuildingType.values()[i];
+                Resource resource = quarryProperties.get(buildingType).getProduceResource();
+                int limit = getBuildingLimit(buildingType);
+                condition.put(buildingType, new ArrayList<>());
+                ArrayList<Integer> planetsWithRes = myResourceMap.get(resource);
+                for (int j = 0; j < limit; j++) {
+                    int place = planetsWithRes.get(random.nextInt(planetsWithRes.size()));
+                    if (!condition.get(buildingType).contains(place)) condition.get(buildingType).add(place);
+                }
+            }
+        }
+
+        void genSecondStageFirstCond() {
+
+        }
+
+        void genBySimulatedAnnealing() {
+            genFirstStageFirstCond();
+            float temp = 1;
+            for (int i = 0; i < 100; i++) {
+                for (int j = 0; j < 100; j++) {
+                    float temp2 = 1;
+                    for (int k = 0; k < 50; k++) {
+                        for (int l = 0; l < 50; l++) {
+
+                        }
+                        temp2 *= 0.92;
+                    }
+                }
+                temp *= 0.95;
+            }
+
+        }
+
     }
 }
 

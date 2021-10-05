@@ -14,6 +14,7 @@ import spb_ai_champ.util.StreamUtil;
 public class Runner {
     private final InputStream inputStream;
     private final OutputStream outputStream;
+    MyStrategy myStrategy = new MyStrategy();
 
     Runner(String host, int port, String token) throws IOException {
         Socket socket = new Socket(host, port);
@@ -28,7 +29,6 @@ public class Runner {
     }
 
     void run() throws IOException {
-        MyStrategy myStrategy = new MyStrategy();
         //DebugInterface debugInterface = new DebugInterface(inputStream, outputStream);
         while (true) {
             spb_ai_champ.codegame.ServerMessage message = spb_ai_champ.codegame.ServerMessage.readFrom(inputStream);

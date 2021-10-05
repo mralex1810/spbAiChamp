@@ -1,4 +1,6 @@
-package spb_ai_champ.model;
+package spb_ai_champ.myClasses;
+
+import spb_ai_champ.model.Resource;
 
 public class Event implements Comparable<Event> {
 
