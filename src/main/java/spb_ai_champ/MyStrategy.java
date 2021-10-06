@@ -11,9 +11,10 @@ public class MyStrategy {
     final Map<Resource, Integer> myResources = new TreeMap<>();
     final Map<Resource, ArrayList<Integer>> myDevelopedResourceMap = new TreeMap<>();
     final Map<Resource, ArrayList<Integer>> myResourceMap = new TreeMap<>();
-    final Map<BuildingType, ArrayList<Integer>> myBuildingPlans = new TreeMap<>();
+    Map<BuildingType, ArrayList<Integer>> myBuildingPlans;
     final Map<Resource, ArrayList<BuildingType>> recyclingBuilding = new TreeMap<>();
-    final int staticDefenders = 10;
+    final int staticDefenders = 2;
+    final int firstStageCount = 4;
     ArrayList<MoveAction> moveActions;
     ArrayList<BuildingAction> buildActions;
     Set<Integer> myPlanets = new TreeSet<>();
@@ -41,159 +42,170 @@ public class MyStrategy {
 
 
     void start() {
-        phase = 0;
-        built = 0;
-        events = new PriorityQueue<>(1);
-        quarryProperties = game.getBuildingProperties();
-        sentStone = new int[planets.length];
-        {
-            for (Resource resource : Resource.values()) {
-                recyclingBuilding.put(resource, new ArrayList<>());
-            }
-            for (BuildingType buildingType : BuildingType.values()) {
-                for (Resource resource : quarryProperties.get(buildingType).getWorkResources().keySet()) {
-                    recyclingBuilding.get(resource).add(buildingType);
-                }
-            }
-        } // recyclingBuildings
-        {
-            medianLine = 29;
-            for (int planet = 0; planet < planets.length; planet++) {
-                WorkerGroup[] workerGroups = planets[planet].getWorkerGroups();
-                if (workerGroups.length > 0 && workerGroups[0].getPlayerIndex() == game.getMyIndex()) {
-                    homePlanet = planet;
-                } else if (workerGroups.length > 0) {
-                    enemyPlanet = planet;
-                }
-                if (planets[planet].getHarvestableResource() == Resource.ORE) {
-                    oreLimit++;
-                }
-            }
-            oreLimit = 1;
-        } // find color, homePlanet and medianLine
-        {
-            planetsDistance = new int[planets.length][planets.length];
-            planetsGraph = new int[planets.length][planets.length];
-            for (int planet = 0; planet < planets.length; planet++) {
-                for (int nextPlanet = 0; nextPlanet < planets.length; nextPlanet++) {
-                    planetsDistance[planet][nextPlanet] = 1000;
-                    planetsGraph[planet][nextPlanet] = -1;
-                    int distance = Math.abs(planets[planet].getX() - planets[nextPlanet].getX()) +
-                            Math.abs(planets[planet].getY() - planets[nextPlanet].getY());
-                    if (distance <= game.getMaxTravelDistance()) {
-                        planetsDistance[planet][nextPlanet] = distance;
-                        planetsGraph[planet][nextPlanet] = distance;
-                    }
-                }
-            }
-            for (int planetMid = 0; planetMid < planets.length; planetMid++) {
-                for (int planet = 0; planet < planets.length; planet++) {
-                    for (int planetNext = 0; planetNext < planets.length; planetNext++) {
-                        int distance = planetsDistance[planet][planetMid] + planetsDistance[planetMid][planetNext];
-                        planetsDistance[planet][planetNext] = Math.min(planetsDistance[planet][planetNext], distance);
-                    }
-                }
-            }
-        } // planetsDistance and planetsGraph
-        {
+        if (game.getCurrentTick() == 0) {
+            phase = 0;
+            built = 0;
+            events = new PriorityQueue<>(1);
+            quarryProperties = game.getBuildingProperties();
+            sentStone = new int[planets.length];
             {
                 for (Resource resource : Resource.values()) {
-                    myResourceMap.put(resource, new ArrayList<>());
-                    myDevelopedResourceMap.put(resource, new ArrayList<>());
-                    myResources.put(resource, 0);
+                    recyclingBuilding.put(resource, new ArrayList<>());
                 }
-            } // put res in map
-            for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
-                Planet planet = planets[planetIndex];
-                if (planet.getHarvestableResource() == null) {
-                    continue;
+                for (BuildingType buildingType : BuildingType.values()) {
+                    for (Resource resource : quarryProperties.get(buildingType).getWorkResources().keySet()) {
+                        recyclingBuilding.get(resource).add(buildingType);
+                    }
                 }
-                myResourceMap.get(planet.getHarvestableResource()).add(planetIndex);
-            }
+            } // recyclingBuildings
+            {
+                medianLine = 29;
+                for (int planet = 0; planet < planets.length; planet++) {
+                    WorkerGroup[] workerGroups = planets[planet].getWorkerGroups();
+                    if (workerGroups.length > 0 && workerGroups[0].getPlayerIndex() == game.getMyIndex()) {
+                        homePlanet = planet;
+                    } else if (workerGroups.length > 0) {
+                        enemyPlanet = planet;
+                    }
+                    if (planets[planet].getHarvestableResource() == Resource.ORE) {
+                        oreLimit++;
+                    }
+                }
+                oreLimit = 1;
+            } // find color, homePlanet and medianLine
+            {
+                planetsDistance = new int[planets.length][planets.length];
+                planetsGraph = new int[planets.length][planets.length];
+                for (int planet = 0; planet < planets.length; planet++) {
+                    for (int nextPlanet = 0; nextPlanet < planets.length; nextPlanet++) {
+                        planetsDistance[planet][nextPlanet] = 1000;
+                        planetsGraph[planet][nextPlanet] = -1;
+                        int distance = Math.abs(planets[planet].getX() - planets[nextPlanet].getX()) +
+                                Math.abs(planets[planet].getY() - planets[nextPlanet].getY());
+                        if (distance <= game.getMaxTravelDistance()) {
+                            planetsDistance[planet][nextPlanet] = distance;
+                            planetsGraph[planet][nextPlanet] = distance;
+                        }
+                    }
+                }
+                for (int planetMid = 0; planetMid < planets.length; planetMid++) {
+                    for (int planet = 0; planet < planets.length; planet++) {
+                        for (int planetNext = 0; planetNext < planets.length; planetNext++) {
+                            int distance = planetsDistance[planet][planetMid] + planetsDistance[planetMid][planetNext];
+                            planetsDistance[planet][planetNext] = Math.min(planetsDistance[planet][planetNext], distance);
+                        }
+                    }
+                }
+            } // planetsDistance and planetsGraph
+            {
+                {
+                    for (Resource resource : Resource.values()) {
+                        myResourceMap.put(resource, new ArrayList<>());
+                        myDevelopedResourceMap.put(resource, new ArrayList<>());
+                        myResources.put(resource, 0);
+                    }
+                } // put res in map
+                for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
+                    Planet planet = planets[planetIndex];
+                    if (planet.getHarvestableResource() == null) {
+                        continue;
+                    }
+                    myResourceMap.get(planet.getHarvestableResource()).add(planetIndex);
+                }
 
-        }  //myResourceMap
-        {
-            nearPlanets = new int[planets.length][];
-            for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
-                ArrayList<Integer> arrayList = new ArrayList<>();
-                for (int i = 0; i < planets.length; i++) {
-                    arrayList.add(i);
-                }
-                int finalPlanetIndex = planetIndex;
-                Comparator<Integer> planetDistanceComp = new Comparator<Integer>() {
-                    @Override
-                    public int compare(Integer o1, Integer o2) {
-                        return Integer.compare(planetsDistance[o1][finalPlanetIndex], planetsDistance[o2][finalPlanetIndex]);
+            }  //myResourceMap
+            {
+                nearPlanets = new int[planets.length][];
+                for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
+                    ArrayList<Integer> arrayList = new ArrayList<>();
+                    for (int i = 0; i < planets.length; i++) {
+                        arrayList.add(i);
                     }
-                };
-                arrayList.sort(planetDistanceComp);
-                int[] arr = new int[planets.length];
-                for (int i = 0; i < planets.length; i++) {
-                    arr[i] = arrayList.get(i);
+                    int finalPlanetIndex = planetIndex;
+                    Comparator<Integer> planetDistanceComp = new Comparator<Integer>() {
+                        @Override
+                        public int compare(Integer o1, Integer o2) {
+                            return Integer.compare(planetsDistance[o1][finalPlanetIndex], planetsDistance[o2][finalPlanetIndex]);
+                        }
+                    };
+                    arrayList.sort(planetDistanceComp);
+                    int[] arr = new int[planets.length];
+                    for (int i = 0; i < planets.length; i++) {
+                        arr[i] = arrayList.get(i);
+                    }
+                    nearPlanets[planetIndex] = arr;
                 }
-                nearPlanets[planetIndex] = arr;
-            }
-        } //near planets
-        {
-            for (BuildingType buildingType :
-                    BuildingType.values()) {
-                myBuildingPlans.put(buildingType, new ArrayList<>());
-            }
-            choosePlanetsForFirstStage(BuildingType.MINES, oreLimit);
-            choosePlanetsForFirstStage(BuildingType.CAREER, 1);
-            choosePlanetsForFirstStage(BuildingType.FARM, 1);
-            for (int building = 4; building <= 6; building++) {
-                choosePlanetsForSecondStage(BuildingType.values()[building]);
-            }
-            for (int building = 7; building < BuildingType.values().length; building++) {
-                choosePlanetForThirdStage(BuildingType.values()[building]);
-            }
-            plannedBuilding = new BuildingType[planets.length];
-            for (BuildingType buildingType : BuildingType.values()) {
-                for (int planetIndex : myBuildingPlans.get(buildingType)) {
-                    plannedBuilding[planetIndex] = buildingType;
-                    buildPlanned++;
+            } //near planets
+            {
+                myBuildingPlans = new TreeMap<>();
+                for (BuildingType buildingType :
+                        BuildingType.values()) {
+                    myBuildingPlans.put(buildingType, new ArrayList<>());
+                }
+                choosePlanetsForFirstStage(BuildingType.MINES, oreLimit);
+                choosePlanetsForFirstStage(BuildingType.CAREER, 1);
+                choosePlanetsForFirstStage(BuildingType.FARM, 1);
+                for (int building = 4; building <= 6; building++) {
+                    choosePlanetsForSecondStage(BuildingType.values()[building]);
+                }
+                for (int building = 7; building < BuildingType.values().length; building++) {
+                    choosePlanetForThirdStage(BuildingType.values()[building]);
                 }
             }
-            System.out.println(myBuildingPlans);
-        } //fill myBuildingPlans
-        {
-            for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
-                for (int myPlanetIndex = 0; myPlanetIndex < planets.length; myPlanetIndex++) {
-                    if (planetsGraph[planetIndex][myPlanetIndex] != -1 && plannedBuilding[myPlanetIndex] != null) {
-                        myPlanets.add(planetIndex);
+        } else if (game.getCurrentTick() == 1) {
+            {
+                myBuildingPlans.remove(BuildingType.QUARRY);
+                BuildPlansGenerator buildPlansGenerator = new BuildPlansGenerator(myBuildingPlans);
+                myBuildingPlans = new TreeMap<>(buildPlansGenerator.genBySimulatedAnnealing());
+                myBuildingPlans.put(BuildingType.QUARRY, new ArrayList<>());
+                plannedBuilding = new BuildingType[planets.length];
+                for (BuildingType buildingType : BuildingType.values()) {
+                    for (int planetIndex : myBuildingPlans.get(buildingType)) {
+                        plannedBuilding[planetIndex] = buildingType;
+                        buildPlanned++;
                     }
                 }
-            }
-        } // my planets
-        {
-            for (int i = 1; i < 4; i++) {
-                myResourcePlanets.addAll(myBuildingPlans.get(BuildingType.values()[i]));
-            }
-        } //myResourcePlanets
-        {
-            for (int i = 0; i < planets.length; i++) {
-                logisticGraph.put(i, new ArrayList<>());
-                reversedLogisticGraph.put(i, new ArrayList<>());
-            }
-            for (BuildingType sender : BuildingType.values()) {
-                if (quarryProperties.get(sender).getProduceResource() == null) continue;
-                for (BuildingType recycler : recyclingBuilding.get(quarryProperties.get(sender).getProduceResource())) {
-                    for (int senderIndex : myBuildingPlans.get(sender)) {
-                        logisticGraph.putIfAbsent(senderIndex, new ArrayList<>());
-                        for (int recyclerIndex : myBuildingPlans.get(recycler)) {
-                            logisticGraph.get(senderIndex).add(recyclerIndex);
+                System.out.println(myBuildingPlans);
+            } //fill myBuildingPlans
+        } else if (game.getCurrentTick() == 2) {
+            {
+                for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
+                    for (int myPlanetIndex = 0; myPlanetIndex < planets.length; myPlanetIndex++) {
+                        if (planetsGraph[planetIndex][myPlanetIndex] != -1 && plannedBuilding[myPlanetIndex] != null) {
+                            myPlanets.add(planetIndex);
                         }
                     }
-                    for (int recyclerIndex : myBuildingPlans.get(recycler)) {
-                        reversedLogisticGraph.putIfAbsent(recyclerIndex, new ArrayList<>());
+                }
+            } // my planets
+            {
+                for (int i = 1; i < 4; i++) {
+                    myResourcePlanets.addAll(myBuildingPlans.get(BuildingType.values()[i]));
+                }
+            } //myResourcePlanets
+            {
+                for (int i = 0; i < planets.length; i++) {
+                    logisticGraph.put(i, new ArrayList<>());
+                    reversedLogisticGraph.put(i, new ArrayList<>());
+                }
+                for (BuildingType sender : BuildingType.values()) {
+                    if (quarryProperties.get(sender).getProduceResource() == null) continue;
+                    for (BuildingType recycler : recyclingBuilding.get(quarryProperties.get(sender).getProduceResource())) {
                         for (int senderIndex : myBuildingPlans.get(sender)) {
-                            reversedLogisticGraph.get(recyclerIndex).add(senderIndex);
+                            logisticGraph.putIfAbsent(senderIndex, new ArrayList<>());
+                            for (int recyclerIndex : myBuildingPlans.get(recycler)) {
+                                logisticGraph.get(senderIndex).add(recyclerIndex);
+                            }
+                        }
+                        for (int recyclerIndex : myBuildingPlans.get(recycler)) {
+                            reversedLogisticGraph.putIfAbsent(recyclerIndex, new ArrayList<>());
+                            for (int senderIndex : myBuildingPlans.get(sender)) {
+                                reversedLogisticGraph.get(recyclerIndex).add(senderIndex);
+                            }
                         }
                     }
                 }
-            }
-        } //Logistic graph
+            } //Logistic graph
+        }
 
         System.out.println(recyclingBuilding);
         System.out.println(logisticGraph);
@@ -252,7 +264,11 @@ public class MyStrategy {
         moveActions = new ArrayList<>();
         buildActions = new ArrayList<>();
         countMyRobots();
-        if (game.getCurrentTick() == 0) {
+        System.out.println(game.getCurrentTick() + " " + myRobots);
+        if (game.getCurrentTick() == 0 || game.getCurrentTick() == 1) {
+            start();
+            return new Action(new MoveAction[0], new BuildingAction[0]);
+        } else if (game.getCurrentTick() == 2) {
             start();
             sendRobotsToMyPlanets();
         }
@@ -260,7 +276,6 @@ public class MyStrategy {
             System.out.println("New phase");
             phase = 1;
         }
-
         Map<Integer, ArrayList<Event>> eventsMap = new TreeMap<>();
         getEvents(eventsMap);
         if (phase == 0) {
@@ -363,12 +378,6 @@ public class MyStrategy {
                             calcShipmentValue(planetIndex, endPlanetIndex, myWorkers / DIVISOR_CONSTANT, true)
                     );
                 }
-                float mod = 10e10f;
-                for (float value : calcValue.values()) {
-                    mod = Math.min(mod, value);
-                }
-                float finalMod = mod + 1;
-                calcValue.forEach((k, v) -> calcValue.put(k, v + finalMod));
                 final float[] maxValue = {-100000f};
                 final int[] maxPlanetIndex = {0};
                 calcValue.forEach((k, v) -> {
@@ -386,6 +395,7 @@ public class MyStrategy {
                 } else {
                     resToSend = null;
                 }
+                myWorkers -= myWorkers / DIVISOR_CONSTANT;
                 if (findPlanetToAttack(0) != myBuildingPlans.get(BuildingType.REPLICATOR).get(0)) {
                     int defenders = myWorkers / 30;
                     findPlanetToSendRobots(planetIndex, defenders);
@@ -393,10 +403,14 @@ public class MyStrategy {
                 moveActions.add(new MoveAction(planetIndex, endPlanetIndex, myWorkers / DIVISOR_CONSTANT, resToSend));
             } else {
                 if (myWorkers > 1) {
-                    myWorkers -= (myWorkers) / 2;
-                    myWorkers += findPlanetToSendRobots(planetIndex, (myWorkers) / 2);
+                    if (myPlanets.contains(planetIndex)) {
+                        myWorkers -= (myWorkers) / 2;
+                        myWorkers += findPlanetToSendRobots(planetIndex, (myWorkers) / 2);
+                        shipment(planetIndex, myWorkers);
+                    } else {
+                        findPlanetToSendRobots(planetIndex, myWorkers);
+                    }
                 }
-                shipment(planetIndex, myWorkers);
             }
         }
 
@@ -415,8 +429,12 @@ public class MyStrategy {
                 robots -= sendCount;
             }
         }
-        if (myRobots > 1000) {
-            moveActions.add(new MoveAction(planetIndex, findNextPlanet(planetIndex, findPlanetToAttack(planetIndex)),
+        if (myRobots > 1100) {
+            int attackPlanet = findPlanetToAttack(planetIndex);
+            if (attackPlanet == -1) {
+                return robots;
+            }
+            moveActions.add(new MoveAction(planetIndex, findNextPlanet(planetIndex, attackPlanet),
                     robots, null));
             robots = 0;
         }
@@ -430,7 +448,7 @@ public class MyStrategy {
                 return thisPlanet;
             }
         }
-        return myBuildingPlans.get(BuildingType.REPLICATOR).get(0);
+        return -1;
     }
 
     boolean isEnemyPlanet(int planetIndex) {
@@ -443,9 +461,11 @@ public class MyStrategy {
     }
 
     void countMyRobots() {
+        myRobots = 0;
         for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
             myRobots += countRobotsOnPlanet(planetIndex);
         }
+        System.out.println(myRobots);
         for (FlyingWorkerGroup flyingWorkerGroup : game.getFlyingWorkerGroups()) {
             myRobots += flyingWorkerGroup.getPlayerIndex() == game.getMyIndex() ? flyingWorkerGroup.getNumber() : 0;
         }
@@ -486,6 +506,48 @@ public class MyStrategy {
 
     }
 
+    int productionForRes(Map<Resource, Integer> myResources, Map<Resource, Integer> resourceNeed) {
+        int[] ans = new int[]{Integer.MAX_VALUE};
+        resourceNeed.forEach((k, v) -> ans[0] = Math.min(ans[0], myResources.getOrDefault(k, 0) / v));
+        return ans[0];
+    }
+
+    int countRobotsOnPlanet(int planetIndex) {
+        int robots = 0;
+        for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
+            robots += workerGroup.getPlayerIndex() == game.getMyIndex() ? workerGroup.getNumber() : 0;
+        }
+        return robots;
+    }
+
+    float calcShipmentValue(int startPlanetIndex, int endPlanetIndex, int robots, boolean reversed) {
+        float value = 0;
+        if (!reversed) {
+            Resource resToSend = quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
+            value += (1f / 25f) * (calcShipmentScore(endPlanetIndex, resToSend, robots) -
+                    calcShipmentScore(endPlanetIndex, resToSend, 0));
+            value += (1f / 5f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
+        } else {
+            Resource resToSend = quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
+            value += -(1f / 2f) * Math.max(0, (countRobotsOnPlanet(endPlanetIndex) -
+                    quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getMaxWorkers()));
+            value += (1f / 50f) * (calcShipmentScore(startPlanetIndex, resToSend, robots) -
+                    calcShipmentScore(startPlanetIndex, resToSend, 0));
+            value += (1f / 1f) *
+                    quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getWorkResources().getOrDefault(resToSend, 0);
+            if (resToSend == Resource.METAL || resToSend == Resource.ORE) value += -1f * game.getCurrentTick() / 20f;
+        }
+        return value;
+    }
+
+    float calcShipmentScore(int planetIndex, Resource resource, int robots) {
+        Map<Resource, Integer> planetResources = new TreeMap<>(planets[planetIndex].getResources());
+        planetResources.put(resource, planetResources.getOrDefault(resource, 0) + robots);
+        if (planets[planetIndex].getBuilding() == null) return 0f;
+        return productionForRes(planetResources,
+                quarryProperties.get(planets[planetIndex].getBuilding().getBuildingType()).getWorkResources());
+    }
+
     BuildingType producedBuilding(Resource resource) {
         if (resource == null) {
             return null;
@@ -514,21 +576,6 @@ public class MyStrategy {
         };
     }
 
-    BuildingType firstStageBuilding(BuildingType building) {
-        return switch (building) {
-            case FOUNDRY -> BuildingType.MINES;
-            case FURNACE -> BuildingType.CAREER;
-            case BIOREACTOR -> BuildingType.FARM;
-            default -> throw new IllegalStateException("Unexpected value: " + building);
-        };
-    }
-
-    int productionForRes(Map<Resource, Integer> myResources, Map<Resource, Integer> resourceNeed) {
-        int[] ans = new int[]{Integer.MAX_VALUE};
-        resourceNeed.forEach((k, v) -> ans[0] = Math.min(ans[0], myResources.getOrDefault(k, 0) / v));
-        return ans[0];
-    }
-
     void sort(int[][] array) {
         for (int i = 1; i < array.length; i++) {
             int j = i;
@@ -539,42 +586,6 @@ public class MyStrategy {
                 j--;
             }
         }
-    }
-
-    int countRobotsOnPlanet(int planetIndex) {
-        int robots = 0;
-        for (WorkerGroup workerGroup : planets[planetIndex].getWorkerGroups()) {
-            robots += workerGroup.getPlayerIndex() == game.getMyIndex() ? workerGroup.getNumber() : 0;
-        }
-        return robots;
-    }
-
-    float calcShipmentValue(int startPlanetIndex, int endPlanetIndex, int robots, boolean reversed) {
-        float value = 0;
-        if (!reversed) {
-            Resource resToSend = quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
-            value += (1f / 25f) * (calcShipmentScore(endPlanetIndex, resToSend, robots) -
-                    calcShipmentScore(endPlanetIndex, resToSend, 0));
-            value += (1f / 5f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
-        } else {
-            Resource resToSend = quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
-            value += -(1f / 2f) * Math.max(0, (countRobotsOnPlanet(endPlanetIndex) -
-                    quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getMaxWorkers()));
-            value += (1f / 100f) * (calcShipmentScore(startPlanetIndex, resToSend, robots) -
-                    calcShipmentScore(startPlanetIndex, resToSend, 0));
-            value += (1f / 1f) *
-                    quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getWorkResources().getOrDefault(resToSend, 0);
-            if (resToSend == Resource.METAL || resToSend == Resource.ORE) value += -1f * game.getCurrentTick() / 4f;
-        }
-        return value;
-    }
-
-    float calcShipmentScore(int planetIndex, Resource resource, int robots) {
-        Map<Resource, Integer> planetResources = new TreeMap<>(planets[planetIndex].getResources());
-        planetResources.put(resource, planetResources.getOrDefault(resource, 0) + robots);
-        if (planets[planetIndex].getBuilding() == null) return 0f;
-        return productionForRes(planetResources,
-                quarryProperties.get(planets[planetIndex].getBuilding().getBuildingType()).getWorkResources());
     }
 
     void choosePlanetsForFirstStage(BuildingType building, int limit) {
@@ -590,6 +601,15 @@ public class MyStrategy {
         for (int i = resourcesIndexes.size() - 1; i >= Math.max(0, resourcesIndexes.size() - limit); i--) {
             myBuildingPlans.get(building).add(planetsValue[i][1]);
         }
+    }
+
+    BuildingType firstStageBuilding(BuildingType building) {
+        return switch (building) {
+            case FOUNDRY -> BuildingType.MINES;
+            case FURNACE -> BuildingType.CAREER;
+            case BIOREACTOR -> BuildingType.FARM;
+            default -> throw new IllegalStateException("Unexpected value: " + building);
+        };
     }
 
     void choosePlanetsForSecondStage(BuildingType building) {
@@ -682,12 +702,14 @@ public class MyStrategy {
 
     class BuildPlansGenerator {
 
-        Map<BuildingType, ArrayList<Integer>> condition = new TreeMap<>();
+        Map<BuildingType, ArrayList<Integer>> condition;
         Map<BuildingType, ArrayList<Integer>> newCondition = new TreeMap<>();
         Map<BuildingType, ArrayList<Integer>> bestCondition = new TreeMap<>();
-        boolean[] usedPlanet = new boolean[planets.length];
         float bestValueOfCondition = -100000f;
 
+        BuildPlansGenerator(Map<BuildingType, ArrayList<Integer>> condition) {
+            this.condition = condition;
+        }
 
         int getBuildingLimit(BuildingType buildingType) {
             return switch (buildingType) {
@@ -698,7 +720,7 @@ public class MyStrategy {
 
         }
 
-        float estimateCondition() {
+        float estimateCondition(Map<BuildingType, ArrayList<Integer>> condition) {
             float value = 0;
             for (BuildingType sender : BuildingType.values()) {
                 Resource sendRes = quarryProperties.get(sender).getProduceResource();
@@ -706,54 +728,141 @@ public class MyStrategy {
                 for (BuildingType recycler : recyclingBuilding.get(sendRes)) {
                     for (int senderIndex : condition.get(sender)) {
                         for (int recyclerIndex : condition.get(recycler)) {
-                            value += (- (float) quarryProperties.get(recycler).getWorkResources().get(sendRes) / condition.get(sender).size())
-                                    * planetsDistance[senderIndex][recyclerIndex];
+                            value += - Math.pow(((float) quarryProperties.get(recycler).getWorkResources().get(sendRes) / condition.get(sender).size())
+                                    * planetsDistance[senderIndex][recyclerIndex], 2d);
                         }
-                        value += (1f / 10f) *
+                        value += -(1f / 10f) *
                                 (planetsDistance[homePlanet][senderIndex] - planetsDistance[enemyPlanet][senderIndex]);
+                        value += -(1f / 15f) * (planetsDistance[homePlanet][senderIndex]);
                     }
                 }
             }
-
             return value;
         }
 
-        void genFirstStageFirstCond() {
-            for (int i = 1; i < 4; i++) {
+        void genFirstCondition() {
+            boolean[] usedPlanet = new boolean[planets.length];
+            usedPlanet[homePlanet] = true;
+            condition = new TreeMap<>();
+            for (int i = 1; i < firstStageCount; i++) {
                 BuildingType buildingType = BuildingType.values()[i];
                 Resource resource = quarryProperties.get(buildingType).getProduceResource();
+                ArrayList<Integer> planetsWithRes = myResourceMap.get(resource);
                 int limit = getBuildingLimit(buildingType);
                 condition.put(buildingType, new ArrayList<>());
-                ArrayList<Integer> planetsWithRes = myResourceMap.get(resource);
                 for (int j = 0; j < limit; j++) {
                     int place = planetsWithRes.get(random.nextInt(planetsWithRes.size()));
-                    if (!condition.get(buildingType).contains(place)) condition.get(buildingType).add(place);
-                }
-            }
-        }
-
-        void genSecondStageFirstCond() {
-
-        }
-
-        void genBySimulatedAnnealing() {
-            genFirstStageFirstCond();
-            float temp = 1;
-            for (int i = 0; i < 100; i++) {
-                for (int j = 0; j < 100; j++) {
-                    float temp2 = 1;
-                    for (int k = 0; k < 50; k++) {
-                        for (int l = 0; l < 50; l++) {
-
-                        }
-                        temp2 *= 0.92;
+                    if (!usedPlanet[place]) {
+                        condition.get(buildingType).add(place);
+                        usedPlanet[place] = true;
+                    } else {
+                        j--;
                     }
                 }
-                temp *= 0.95;
             }
+            for (int i = firstStageCount; i < BuildingType.values().length; i++) {
+                BuildingType buildingType = BuildingType.values()[i];
+                int limit = getBuildingLimit(buildingType);
+                condition.put(buildingType, new ArrayList<>());
+                for (int j = 0; j < limit; j++) {
+                    int place = random.nextInt(planets.length);
+                    if (!usedPlanet[place]) {
+                        condition.get(buildingType).add(place);
+                        usedPlanet[place] = true;
+                    } else {
+                        j--;
+                    }
+                }
+            }
+        }
 
+        Map<BuildingType, ArrayList<Integer>> genBySimulatedAnnealing() {
+            if (condition == null) genFirstCondition();
+            float temp = 1f;
+            float value = estimateCondition(condition);
+            for (int i = 0; i < 200; i++) {
+                for (int j = 0; j < 60; j++) {
+                    genNewCondition();
+                    float newValue = estimateCondition(newCondition);
+                    double probability = Math.exp(-(value - newValue) / (10f * temp));
+
+                    if (newValue > value || probability > random.nextDouble()) {
+                        updateConditionFromNewCondition();
+                        value = estimateCondition(condition);
+                    }
+                    if (value > bestValueOfCondition) {
+                        bestValueOfCondition = value;
+                        bestCondition = new TreeMap<>(condition);
+                    }
+                }
+                temp *= 0.93;
+            }
+            System.out.println(bestCondition + " " + bestValueOfCondition);
+            return bestCondition;
+        }
+
+        private void updateConditionFromNewCondition() {
+            condition = new TreeMap<>(newCondition);
+        }
+
+        private void genNewCondition() {
+            boolean[] newUsed = new boolean[planets.length];
+            newUsed[homePlanet] = true;
+            newCondition = new TreeMap<>(condition);
+            for (int i = 1; i < firstStageCount; i++) {
+                BuildingType buildingType = BuildingType.values()[i];
+                int limit = getBuildingLimit(buildingType);
+                newCondition.put(buildingType, new ArrayList<>());
+                for (int j = 0; j < limit; j++) {
+                    int newPlace = findNewPlaceFirstStage(condition.get(buildingType).get(j), buildingType);
+                    if (!newUsed[newPlace]) {
+                        newCondition.get(buildingType).add(newPlace);
+                        newUsed[newPlace] = true;
+                    } else {
+                        j--;
+                    }
+                }
+            }
+            for (int i = firstStageCount; i < BuildingType.values().length; i++) {
+                BuildingType buildingType = BuildingType.values()[i];
+                int limit = getBuildingLimit(buildingType);
+                newCondition.put(buildingType, new ArrayList<>());
+                for (int j = 0; j < limit; j++) {
+                    int newPlace = findNewPlaceSecondStage(condition.get(buildingType).get(j), newUsed);
+                    if (!newUsed[newPlace]) {
+                        newCondition.get(buildingType).add(newPlace);
+                        newUsed[newPlace] = true;
+                    } else {
+                        j--;
+                    }
+                }
+            }
+        }
+
+        private int findNewPlaceFirstStage(int place, BuildingType buildingType) {
+            if (random.nextDouble() < 0.3) {
+                return place;
+            }
+            Resource resource = quarryProperties.get(buildingType).getProduceResource();
+            ArrayList<Integer> planetsWithRes = myResourceMap.get(resource);
+            return planetsWithRes.get(random.nextInt(planetsWithRes.size()));
+
+        }
+
+        private int findNewPlaceSecondStage(int place, boolean[] newUsed) {
+            if (random.nextDouble() < 0.3) {
+                return place;
+            }
+            ArrayList<Integer> places = new ArrayList<>();
+            for (int i = 1; i < planets.length; i++) {
+                int thisPlanet = nearPlanets[place][i];
+                if (!newUsed[thisPlanet]) places.add(thisPlanet);
+                if (places.size() >= 5) break;
+            }
+            return places.get(random.nextInt(places.size()));
         }
 
     }
 }
+
 
