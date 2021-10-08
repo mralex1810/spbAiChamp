@@ -36,7 +36,6 @@ public class MyStrategy {
     int enemyPlanet;
     int oreLimit;
     int myRobots;
-    int attackers;
     PriorityQueue<Event> events;
     ArrayList<Integer> myResourcePlanets = new ArrayList<>();
 
@@ -228,6 +227,11 @@ public class MyStrategy {
     }
 
     void setEvent(MoveAction moveAction, ArrayList<MoveAction> newMoveActions) {
+        if (isEnemyPlanet(moveAction.getStartPlanet())) {
+            events.add(new Event(game.getCurrentTick() + 1,
+                    moveAction.getStartPlanet(), moveAction.getTargetPlanet(), moveAction.getTakeResource(),
+                    moveAction.getWorkerNumber()));
+        }
         if (planetsGraph[moveAction.getStartPlanet()][moveAction.getTargetPlanet()] == -1) {
             int nextPlanet = findNextPlanet(moveAction.getStartPlanet(), moveAction.getTargetPlanet());
             events.add(new Event(game.getCurrentTick() + planetsDistance[moveAction.getStartPlanet()][nextPlanet],
@@ -381,7 +385,7 @@ public class MyStrategy {
                 final float[] maxValue = {-100000f};
                 final int[] maxPlanetIndex = {0};
                 calcValue.forEach((k, v) -> {
-                    float value = v * random.nextFloat();
+                    float value = v * Math.max(0.2f, random.nextFloat());
                     if (value > maxValue[0]) {
                         maxPlanetIndex[0] = k;
                         maxValue[0] = value;
@@ -529,13 +533,12 @@ public class MyStrategy {
             value += (1f / 5f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
         } else {
             Resource resToSend = quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getProduceResource();
-            value += -(1f / 2f) * Math.max(0, (countRobotsOnPlanet(endPlanetIndex) -
+            value += -(1f / 2f) * Math.max(-1, (countRobotsOnPlanet(endPlanetIndex) -
                     quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getMaxWorkers()));
             value += (1f / 50f) * (calcShipmentScore(startPlanetIndex, resToSend, robots) -
                     calcShipmentScore(startPlanetIndex, resToSend, 0));
             value += (1f / 1f) *
                     quarryProperties.get(planets[startPlanetIndex].getBuilding().getBuildingType()).getWorkResources().getOrDefault(resToSend, 0);
-            if (resToSend == Resource.METAL || resToSend == Resource.ORE) value += -1f * game.getCurrentTick() / 20f;
         }
         return value;
     }

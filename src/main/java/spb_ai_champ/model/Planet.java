@@ -9,6 +9,24 @@ public class Planet {
     /**
      * TODO - Document
      */
+    private int id;
+
+    /**
+     * TODO - Document
+     */
+    public int getId() {
+        return id;
+    }
+
+    /**
+     * TODO - Document
+     */
+    public void setId(int value) {
+        this.id = value;
+    }
+    /**
+     * TODO - Document
+     */
     private int x;
 
     /**
@@ -115,7 +133,8 @@ public class Planet {
         this.building = value;
     }
 
-    public Planet(int x, int y, spb_ai_champ.model.Resource harvestableResource, spb_ai_champ.model.WorkerGroup[] workerGroups, java.util.Map<spb_ai_champ.model.Resource, Integer> resources, spb_ai_champ.model.Building building) {
+    public Planet(int id, int x, int y, spb_ai_champ.model.Resource harvestableResource, spb_ai_champ.model.WorkerGroup[] workerGroups, java.util.Map<spb_ai_champ.model.Resource, Integer> resources, spb_ai_champ.model.Building building) {
+        this.id = id;
         this.x = x;
         this.y = y;
         this.harvestableResource = harvestableResource;
@@ -128,6 +147,8 @@ public class Planet {
      * Read Planet from input stream
      */
     public static Planet readFrom(java.io.InputStream stream) throws java.io.IOException {
+        int id;
+        id = StreamUtil.readInt(stream);
         int x;
         x = StreamUtil.readInt(stream);
         int y;
@@ -161,13 +182,14 @@ public class Planet {
         } else {
             building = null;
         }
-        return new Planet(x, y, harvestableResource, workerGroups, resources, building);
+        return new Planet(id, x, y, harvestableResource, workerGroups, resources, building);
     }
 
     /**
      * Write Planet to output stream
      */
     public void writeTo(java.io.OutputStream stream) throws java.io.IOException {
+        StreamUtil.writeInt(stream, id);
         StreamUtil.writeInt(stream, x);
         StreamUtil.writeInt(stream, y);
         if (harvestableResource == null) {
@@ -201,6 +223,9 @@ public class Planet {
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder("Planet { ");
+        stringBuilder.append("id: ");
+        stringBuilder.append(String.valueOf(id));
+        stringBuilder.append(", ");
         stringBuilder.append("x: ");
         stringBuilder.append(String.valueOf(x));
         stringBuilder.append(", ");

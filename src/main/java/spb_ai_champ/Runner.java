@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.HashMap;
 import java.io.BufferedOutputStream;
 
 import spb_ai_champ.util.StreamUtil;
@@ -14,7 +12,6 @@ import spb_ai_champ.util.StreamUtil;
 public class Runner {
     private final InputStream inputStream;
     private final OutputStream outputStream;
-    MyStrategy myStrategy = new MyStrategy();
 
     Runner(String host, int port, String token) throws IOException {
         Socket socket = new Socket(host, port);
@@ -23,12 +20,13 @@ public class Runner {
         outputStream = new BufferedOutputStream(socket.getOutputStream());
         StreamUtil.writeString(outputStream, token);
         StreamUtil.writeInt(outputStream, 0);
-        StreamUtil.writeInt(outputStream, 2);
+        StreamUtil.writeInt(outputStream, 3);
         StreamUtil.writeInt(outputStream, 0);
         outputStream.flush();
     }
 
     void run() throws IOException {
+        MyStrategy myStrategy = new MyStrategy();
         //DebugInterface debugInterface = new DebugInterface(inputStream, outputStream);
         while (true) {
             spb_ai_champ.codegame.ServerMessage message = spb_ai_champ.codegame.ServerMessage.readFrom(inputStream);
