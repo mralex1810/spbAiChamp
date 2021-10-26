@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-zip -r myStrategy.zip src pom.xml
+zip -r archives/5.0a.zip src pom.xml

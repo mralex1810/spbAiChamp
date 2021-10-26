@@ -1,7 +1,7 @@
 package spb_ai_champ;
 
 import spb_ai_champ.model.*;
-import spb_ai_champ.myClasses.Event;
+import spb_ai_champ.myClasses.MoveEvent;
 import spb_ai_champ.myClasses.Pair;
 
 import java.util.*;
@@ -13,6 +13,8 @@ public class MyStrategy {
     final Map<Resource, ArrayList<Integer>> myDevelopedResourceMap = new TreeMap<>();
     final Map<Resource, ArrayList<Integer>> myResourceMap = new TreeMap<>();
     final Map<Resource, ArrayList<BuildingType>> recyclingBuilding = new TreeMap<>();
+    final Map<Integer, Integer> attackRobots = new HashMap<>();
+    final Map<Integer, Integer> builderRobots = new HashMap<>();
     final int staticDefenders = 2;
     final int firstStageCount = 4;
     Map<BuildingType, ArrayList<Integer>> myBuildingPlans;
@@ -30,13 +32,14 @@ public class MyStrategy {
     int[] sentStone;
     BuildingType[] plannedBuilding;
     int phase;
+    int attackers;
     int built;
     int buildPlanned;
     int homePlanet;
     int enemyPlanet;
     int oreLimit;
     int myRobots;
-    PriorityQueue<Event> events;
+    PriorityQueue<MoveEvent> moveEvents;
     ArrayList<Integer> myResourcePlanets = new ArrayList<>();
 
 
@@ -44,7 +47,7 @@ public class MyStrategy {
         if (game.getCurrentTick() == 0) {
             phase = 0;
             built = 0;
-            events = new PriorityQueue<>(1);
+            moveEvents = new PriorityQueue<>(1);
             quarryProperties = game.getBuildingProperties();
             sentStone = new int[planets.length];
             //System.out.println(quarryProperties);
@@ -121,12 +124,7 @@ public class MyStrategy {
                         arrayList.add(i);
                     }
                     int finalPlanetIndex = planetIndex;
-                    Comparator<Integer> planetDistanceComp = new Comparator<Integer>() {
-                        @Override
-                        public int compare(Integer o1, Integer o2) {
-                            return Integer.compare(planetsDistance[o1][finalPlanetIndex], planetsDistance[o2][finalPlanetIndex]);
-                        }
-                    };
+                    Comparator<Integer> planetDistanceComp = Comparator.comparingInt(o -> planetsDistance[o][finalPlanetIndex]);
                     arrayList.sort(planetDistanceComp);
                     int[] arr = new int[planets.length];
                     for (int i = 0; i < planets.length; i++) {
@@ -206,9 +204,7 @@ public class MyStrategy {
             } //Logistic graph
         }
 
-        //System.out.println(recyclingBuilding);
-        //System.out.println(logisticGraph);
-        //System.out.println(reversedLogisticGraph);
+        System.out.println(recyclingBuilding);
 
     }
 
@@ -218,23 +214,24 @@ public class MyStrategy {
         }
     }
 
-    void getEvents(Map<Integer, ArrayList<Event>> eventsMap) {
-        while (events.peek() != null && events.peek().getTick() == game.getCurrentTick()) {
-            Event event = events.poll();
-            eventsMap.putIfAbsent(event.getPlanet(), new ArrayList<>());
-            eventsMap.get(event.getPlanet()).add(event);
+    void getEvents(Map<Integer, ArrayList<MoveEvent>> eventsMap) {
+        while (moveEvents.peek() != null && moveEvents.peek().getTick() == game.getCurrentTick()) {
+            MoveEvent moveEvent = moveEvents.poll();
+            assert moveEvent != null;
+            eventsMap.putIfAbsent(moveEvent.getPlanet(), new ArrayList<>());
+            eventsMap.get(moveEvent.getPlanet()).add(moveEvent);
         }
     }
 
     void setEvent(MoveAction moveAction, ArrayList<MoveAction> newMoveActions) {
         if (isEnemyPlanet(moveAction.getStartPlanet())) {
-            events.add(new Event(game.getCurrentTick() + 1,
+            moveEvents.add(new MoveEvent(game.getCurrentTick() + 1,
                     moveAction.getStartPlanet(), moveAction.getTargetPlanet(), moveAction.getTakeResource(),
                     moveAction.getWorkerNumber()));
         }
         if (planetsGraph[moveAction.getStartPlanet()][moveAction.getTargetPlanet()] == -1) {
             int nextPlanet = findNextPlanet(moveAction.getStartPlanet(), moveAction.getTargetPlanet());
-            events.add(new Event(game.getCurrentTick() + planetsDistance[moveAction.getStartPlanet()][nextPlanet],
+            moveEvents.add(new MoveEvent(game.getCurrentTick() + planetsDistance[moveAction.getStartPlanet()][nextPlanet],
                     nextPlanet, moveAction.getTargetPlanet(), moveAction.getTakeResource(),
                     moveAction.getWorkerNumber()));
             newMoveActions.add(new MoveAction(moveAction.getStartPlanet(), nextPlanet, moveAction.getWorkerNumber(),
@@ -279,10 +276,10 @@ public class MyStrategy {
             sendRobotsToMyPlanets();
         }
         if (phase == 0 && built == buildPlanned) {
-            //System.out.println("New phase");
+            System.out.println("New phase: " + game.getCurrentTick());
             phase = 1;
         }
-        Map<Integer, ArrayList<Event>> eventsMap = new TreeMap<>();
+        Map<Integer, ArrayList<MoveEvent>> eventsMap = new TreeMap<>();
         getEvents(eventsMap);
         if (phase == 0) {
             int myStone = planets[homePlanet].getResources().getOrDefault(Resource.STONE, 0);
@@ -335,32 +332,56 @@ public class MyStrategy {
 
             if (myWorkers <= 0) continue;
 
-            for (Event event : eventsMap.getOrDefault(planetIndex, new ArrayList<>())) {
-                int robots = Math.min(event.getRobots(), myWorkers);
-                if (event.getResource() != null) {
-                    robots = Math.min(robots, planets[planetIndex].getResources().getOrDefault(event.getResource(),
+            for (MoveEvent moveEvent : eventsMap.getOrDefault(planetIndex, new ArrayList<>())) {
+                int robots = Math.min(moveEvent.getRobots(), myWorkers);
+                if (moveEvent.getResource() != null) {
+                    robots = Math.min(robots, planets[planetIndex].getResources().getOrDefault(moveEvent.getResource(),
                             0));
                 }
-                moveActions.add(new MoveAction(planetIndex, event.getEndPlanet(), robots, event.getResource()));
+                moveActions.add(new MoveAction(planetIndex, moveEvent.getEndPlanet(), robots, moveEvent.getResource()));
                 myWorkers -= robots;
             }
-
             if (myWorkers <= 0) continue;
-
             if (phase == 0 && planetIndex != homePlanet) {
                 moveActions.add(new MoveAction(planetIndex, homePlanet, myWorkers, null));
             }
-
             if (phase == 0) continue;
+            int attack = attackRobots.getOrDefault(planetIndex, 0);
+            if (plannedBuilding[planetIndex] == BuildingType.REPLICATOR &&
+                    findPlanetToAttack(planetIndex) != myBuildingPlans.get(BuildingType.REPLICATOR).get(0)) {
+                myWorkers -= attack;
+                int toAttack = Math.min(myWorkers * 2 / 3, Math.max(myRobots - attackers - 1100, 0));
+                myWorkers -= toAttack;
+                attack += toAttack;
+                attackRobots.put(planetIndex, attack);
+//                System.out.println(attackRobots + " " + myWorkers + " " + attack + " " + myRobots + " " + attackers);
+                if (attack > 100) {
+                    Attack(planetIndex, attack);
+                }
+            } else if (!myPlanets.contains(planetIndex) && planets[planetIndex].getBuilding() != null && planetIndex > 0) {
+                buildActions.add(new BuildingAction(planetIndex, null));
+                myWorkers = 0;
+            } else if (attack > 0 && myWorkers >= attack) {
+                myWorkers -= attack;
+                Attack(planetIndex, attack);
+            } else if (!myPlanets.contains(planetIndex)) {
+                attack = myWorkers;
+                Attack(planetIndex, attack);
+                myWorkers = 0;
+            }
 
+
+            if (myWorkers <= 0) continue;
             int cachedWorkers = myWorkers;
-            if (planets[planetIndex].getBuilding() != null && planetIndex != homePlanet && myPlanets.contains(planetIndex)) {
-                BuildingType buildingType = planets[planetIndex].getBuilding().getBuildingType();
+            if (planets[planetIndex].getBuilding() != null && plannedBuilding[planetIndex] != null &&
+                    planetIndex != homePlanet && myPlanets.contains(planetIndex)) {
+                BuildingType buildingType = plannedBuilding[planetIndex];
                 Resource planetResource = quarryProperties.get(buildingType).getProduceResource();
                 for (int loop = 0; loop < 3; loop++) {
                     Map<Pair<Integer, Integer>, Float> calcValue = new HashMap<>();
                     for (int divisorConstant = 1; divisorConstant < 6; divisorConstant++) {
                         myWorkers = cachedWorkers;
+
                         if (buildingType.tag >= 4) {
                             int toWork = productionForRes(planets[planetIndex].getResources(),
                                     quarryProperties.get(buildingType).getWorkResources());
@@ -391,7 +412,6 @@ public class MyStrategy {
                     myWorkers = cachedWorkers;
                     float normalizeConst = 10000000f;
                     for (Map.Entry<Pair<Integer, Integer>, Float> entry : calcValue.entrySet()) {
-                        Pair<Integer, Integer> k = entry.getKey();
                         Float v = entry.getValue();
                         if (v < normalizeConst) {
                             normalizeConst = v;
@@ -443,13 +463,16 @@ public class MyStrategy {
                     }
                     cachedWorkers = myWorkers;
                     moveActions.add(new MoveAction(planetIndex, endPlanetIndex, workers, resToSend));
-                    //System.out.println(moveActions.get(moveActions.size() - 1));
+//                    if (buildingType == BuildingType.REPLICATOR) {
+//                        System.out.println(moveActions.get(moveActions.size() - 1) + " " + game.getCurrentTick());
+//                    }
                 }
             } else {
                 if (myWorkers > 1) {
                     if (myPlanets.contains(planetIndex)) {
-                        myWorkers -= (myWorkers) / 2;
-                        myWorkers += findPlanetToSendRobots(planetIndex, (myWorkers) / 2);
+                        int tmp = myWorkers / 2;
+                        myWorkers -= tmp;
+                        myWorkers += findPlanetToSendRobots(planetIndex, tmp);
                         shipment(planetIndex, myWorkers);
                     } else {
                         findPlanetToSendRobots(planetIndex, myWorkers);
@@ -464,6 +487,19 @@ public class MyStrategy {
         return new Action(moveActions.toArray(moveActionsArray), buildActions.toArray(buildingActionsArray), null);
     }
 
+    private void Attack(int planetIndex, int attack) {
+        int attackPlanet = findPlanetToAttack(planetIndex);
+        if (attackPlanet == -1) {
+            moveActions.add(new MoveAction(planetIndex, myBuildingPlans.get(BuildingType.REPLICATOR).get(0), attack, null));
+        } else {
+            int nextPlanet = findNextPlanet(planetIndex, attackPlanet);
+            moveActions.add(new MoveAction(planetIndex, nextPlanet,
+                    attack, null));
+            attackRobots.put(nextPlanet, attack);
+        }
+        attackRobots.put(planetIndex, 0);
+    }
+
     int findPlanetToSendRobots(int planetIndex, int robots) {
         for (int myPlanetIndex : myPlanets) {
             int lack = staticDefenders - countRobotsOnPlanet(myPlanetIndex);
@@ -472,15 +508,6 @@ public class MyStrategy {
                 moveActions.add(new MoveAction(planetIndex, myPlanetIndex, sendCount, null));
                 robots -= sendCount;
             }
-        }
-        if (myRobots > 1100) {
-            int attackPlanet = findPlanetToAttack(planetIndex);
-            if (attackPlanet == -1) {
-                return robots;
-            }
-            moveActions.add(new MoveAction(planetIndex, findNextPlanet(planetIndex, attackPlanet),
-                    robots, null));
-            robots = 0;
         }
         return robots;
     }
@@ -505,6 +532,10 @@ public class MyStrategy {
     }
 
     void countMyRobots() {
+        attackers = 0;
+        for (Map.Entry<Integer, Integer> p : attackRobots.entrySet()) {
+            attackers += p.getValue();
+        }
         myRobots = 0;
         for (int planetIndex = 0; planetIndex < planets.length; planetIndex++) {
             myRobots += countRobotsOnPlanet(planetIndex);
@@ -533,7 +564,7 @@ public class MyStrategy {
             MoveAction moveAction = moveActions.get(i);
             i++;
             if (moveAction.getStartPlanet() == moveAction.getTargetPlanet()) continue;
-            events.add(new Event(game.getCurrentTick() + 1,
+            moveEvents.add(new MoveEvent(game.getCurrentTick() + 1,
                     moveAction.getStartPlanet(), moveAction.getTargetPlanet(), moveAction.getTakeResource(),
                     moveAction.getWorkerNumber()));
         }
@@ -541,10 +572,9 @@ public class MyStrategy {
     }
 
     void shipment(int planetIndex, int myWorkers) {
-        int planetRobots = myWorkers;
-        if (planetRobots / myResourcePlanets.size() <= 0) return;
+        if (myWorkers / myResourcePlanets.size() <= 0) return;
         for (int indexPlanet : myResourcePlanets) {
-            moveActions.add(new MoveAction(planetIndex, indexPlanet, planetRobots / myResourcePlanets.size(), null));
+            moveActions.add(new MoveAction(planetIndex, indexPlanet, myWorkers / myResourcePlanets.size(), null));
         }
 
     }
@@ -565,8 +595,8 @@ public class MyStrategy {
 
     float calcShipmentValue(int startPlanetIndex, int endPlanetIndex, int robots, boolean reversed) {
         float value = 0;
-        BuildingType startPlanetBuilding = planets[startPlanetIndex].getBuilding().getBuildingType();
-        BuildingType endPlanetBuilding = planets[endPlanetIndex].getBuilding().getBuildingType();
+        BuildingType startPlanetBuilding = plannedBuilding[startPlanetIndex];
+        BuildingType endPlanetBuilding = plannedBuilding[endPlanetIndex];
         //System.out.print(startPlanetBuilding + " " + endPlanetBuilding + " " + endPlanetIndex + " " + robots + " " + reversed + " ");
 
         if (!reversed) {
@@ -575,7 +605,7 @@ public class MyStrategy {
                     calcShipmentScore(endPlanetIndex, resToSend, 0));
             //System.out.print(value + " ");
 
-            value += (1f / 5f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
+            value += (10f / 1f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
             //System.out.print(value + " ");
             value += -(1f / 5f) * planets[endPlanetIndex].getResources().getOrDefault(resToSend, 0);
             //System.out.print(value + " ");
@@ -587,14 +617,14 @@ public class MyStrategy {
         } else {
             Resource resToSend = quarryProperties.get(endPlanetBuilding).getProduceResource();
             value += -(1f / 2f) * Math.max(-1, (countRobotsOnPlanet(endPlanetIndex) -
-                    quarryProperties.get(planets[endPlanetIndex].getBuilding().getBuildingType()).getMaxWorkers()));
+                    quarryProperties.get(plannedBuilding[endPlanetIndex]).getMaxWorkers()));
             //System.out.print(value + " ");
             value += (1f / 10f) * (calcShipmentScore(startPlanetIndex, resToSend, robots) -
                     calcShipmentScore(startPlanetIndex, resToSend, 0));
             //System.out.print(value + " ");
             value -= (1f / 60f) * planets[startPlanetIndex].getResources().getOrDefault(resToSend, 0);
             //System.out.print(value + " ");
-            value -= (1f / 1f) *
+            value -= (1f / 1.1f) *
                     quarryProperties.get(startPlanetBuilding).getWorkResources().getOrDefault(resToSend, 0);
             //System.out.print(value + " ");
 
@@ -605,6 +635,15 @@ public class MyStrategy {
         //System.out.println();
 
         return value;
+    }
+
+    int getBuildingLimit(BuildingType buildingType) {
+        return switch (buildingType) {
+            case FOUNDRY -> 2;
+            case QUARRY, REPLICATOR2, REPLICATOR3 -> 0;
+            default -> 1;
+        };
+
     }
 
     float calcShipmentScore(int planetIndex, Resource resource, int robots) {
@@ -684,10 +723,7 @@ public class MyStrategy {
     void choosePlanetsForSecondStage(BuildingType building) {
         int lookingPlanets = planets.length;
         for (int firstStagePlanetIndex : myBuildingPlans.get(firstStageBuilding(building))) {
-            int loop = switch (building) {
-                case FOUNDRY -> 2;
-                default -> 1;
-            };
+            int loop = getBuildingLimit(building);
             for (int looped = 0; looped < loop; looped++) {
                 int[] planetValue = new int[lookingPlanets];
                 for (int i = 0; i < lookingPlanets; i++) {
@@ -760,16 +796,6 @@ public class MyStrategy {
         myBuildingPlans.get(building).add(maxi);
     }
 
-    boolean compareResources(Map<Resource, Integer> a, Map<Resource, Integer> b) {
-        boolean ans = true;
-        for (Resource resource : a.keySet()) {
-            if (a.get(resource) > b.getOrDefault(resource, 0)) {
-                ans = false;
-            }
-        }
-        return ans;
-    }
-
     class BuildPlansGenerator {
 
         Map<BuildingType, ArrayList<Integer>> condition;
@@ -781,15 +807,6 @@ public class MyStrategy {
             this.condition = condition;
         }
 
-        int getBuildingLimit(BuildingType buildingType) {
-            return switch (buildingType) {
-                case FOUNDRY -> 2;
-                case QUARRY, REPLICATOR2, REPLICATOR3 -> 0;
-                default -> 1;
-            };
-
-        }
-
         float estimateCondition(Map<BuildingType, ArrayList<Integer>> condition) {
             float value = 0;
             for (BuildingType sender : BuildingType.values()) {
@@ -798,7 +815,8 @@ public class MyStrategy {
                 for (BuildingType recycler : recyclingBuilding.get(sendRes)) {
                     for (int senderIndex : condition.get(sender)) {
                         for (int recyclerIndex : condition.get(recycler)) {
-                            value += -(4f) * quarryProperties.get(recycler).getWorkResources().get(sendRes) * planetsDistance[senderIndex][recyclerIndex];
+                            value += -(4f) * Math.pow(quarryProperties.get(recycler).getWorkResources().get(sendRes), 2)
+                                    * planetsDistance[senderIndex][recyclerIndex];
                         }
                         value += -(1f / 15f) * (planetsDistance[homePlanet][senderIndex]);
                     }

@@ -2,7 +2,7 @@ package spb_ai_champ.myClasses;
 
 import spb_ai_champ.model.Resource;
 
-public class Event implements Comparable<Event> {
+public class MoveEvent implements Comparable<MoveEvent> {
 
     private final int tick;
     private final int planet;
@@ -10,7 +10,7 @@ public class Event implements Comparable<Event> {
     private final Resource resource;
     private final int robots;
 
-    public Event(int tick, int planet, int endPlanet, Resource resource, int robots) {
+    public MoveEvent(int tick, int planet, int endPlanet, Resource resource, int robots) {
         this.tick = tick;
         this.planet = planet;
         this.endPlanet = endPlanet;
@@ -19,12 +19,12 @@ public class Event implements Comparable<Event> {
 
     }
 
-    public Event(Event event, int delay, int planet, int robots) {
-        tick = event.getTick() + delay;
+    public MoveEvent(MoveEvent moveEvent, int delay, int planet, int robots) {
+        tick = moveEvent.getTick() + delay;
         this.planet = planet;
         this.robots = robots;
-        resource = event.getResource();
-        endPlanet = event.getEndPlanet();
+        resource = moveEvent.getResource();
+        endPlanet = moveEvent.getEndPlanet();
     }
 
     public int getEndPlanet() {
@@ -54,7 +54,7 @@ public class Event implements Comparable<Event> {
     }
 
     @Override
-    public int compareTo(Event o) {
+    public int compareTo(MoveEvent o) {
         if (tick == o.getTick()) {
             if (planet < o.getPlanet()) return -1;
             else if (planet > o.getPlanet()) return 1;
