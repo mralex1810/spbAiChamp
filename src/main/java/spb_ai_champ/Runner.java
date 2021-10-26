@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.io.InputStream;
+import java.util.Map;
+import java.util.HashMap;
 import java.io.BufferedOutputStream;
 
 import spb_ai_champ.util.StreamUtil;
@@ -19,9 +21,9 @@ public class Runner {
         inputStream = new BufferedInputStream(socket.getInputStream());
         outputStream = new BufferedOutputStream(socket.getOutputStream());
         StreamUtil.writeString(outputStream, token);
+        StreamUtil.writeInt(outputStream, 1);
         StreamUtil.writeInt(outputStream, 0);
-        StreamUtil.writeInt(outputStream, 3);
-        StreamUtil.writeInt(outputStream, 0);
+        StreamUtil.writeInt(outputStream, 1);
         outputStream.flush();
     }
 
@@ -44,6 +46,12 @@ public class Runner {
             } else {
                 throw new IOException("Unexpected server message");
             }
+        }
+    }
+
+    public static void burst() {
+        for(int i = 0; i < 10000; i++) {
+            MyStrategy myStrategy = new MyStrategy();
         }
     }
 

@@ -3,68 +3,87 @@ package spb_ai_champ.model;
 import spb_ai_champ.util.StreamUtil;
 
 /**
- * TODO - Document
+ * A building
  */
 public class Building {
     /**
-     * TODO - Document
+     * Building's type
      */
     private spb_ai_champ.model.BuildingType buildingType;
 
     /**
-     * TODO - Document
+     * Building's type
      */
     public spb_ai_champ.model.BuildingType getBuildingType() {
         return buildingType;
     }
 
     /**
-     * TODO - Document
+     * Building's type
      */
     public void setBuildingType(spb_ai_champ.model.BuildingType value) {
         this.buildingType = value;
     }
     /**
-     * TODO - Document
+     * Current health
      */
     private int health;
 
     /**
-     * TODO - Document
+     * Current health
      */
     public int getHealth() {
         return health;
     }
 
     /**
-     * TODO - Document
+     * Current health
      */
     public void setHealth(int value) {
         this.health = value;
     }
     /**
-     * TODO - Document
+     * Amount of work done for current task
      */
     private int workDone;
 
     /**
-     * TODO - Document
+     * Amount of work done for current task
      */
     public int getWorkDone() {
         return workDone;
     }
 
     /**
-     * TODO - Document
+     * Amount of work done for current task
      */
     public void setWorkDone(int value) {
         this.workDone = value;
     }
+    /**
+     * Number of tasks finished since last tick
+     */
+    private int lastTickTasksDone;
 
-    public Building(spb_ai_champ.model.BuildingType buildingType, int health, int workDone) {
+    /**
+     * Number of tasks finished since last tick
+     */
+    public int getLastTickTasksDone() {
+        return lastTickTasksDone;
+    }
+
+    /**
+     * Number of tasks finished since last tick
+     */
+    public void setLastTickTasksDone(int value) {
+        this.lastTickTasksDone = value;
+    }
+
+    public Building(spb_ai_champ.model.BuildingType buildingType, int health, int workDone, int lastTickTasksDone) {
         this.buildingType = buildingType;
         this.health = health;
         this.workDone = workDone;
+        this.lastTickTasksDone = lastTickTasksDone;
     }
 
     /**
@@ -77,7 +96,9 @@ public class Building {
         health = StreamUtil.readInt(stream);
         int workDone;
         workDone = StreamUtil.readInt(stream);
-        return new Building(buildingType, health, workDone);
+        int lastTickTasksDone;
+        lastTickTasksDone = StreamUtil.readInt(stream);
+        return new Building(buildingType, health, workDone, lastTickTasksDone);
     }
 
     /**
@@ -87,6 +108,7 @@ public class Building {
         StreamUtil.writeInt(stream, buildingType.tag);
         StreamUtil.writeInt(stream, health);
         StreamUtil.writeInt(stream, workDone);
+        StreamUtil.writeInt(stream, lastTickTasksDone);
     }
 
     /**
@@ -103,6 +125,9 @@ public class Building {
         stringBuilder.append(", ");
         stringBuilder.append("workDone: ");
         stringBuilder.append(String.valueOf(workDone));
+        stringBuilder.append(", ");
+        stringBuilder.append("lastTickTasksDone: ");
+        stringBuilder.append(String.valueOf(lastTickTasksDone));
         stringBuilder.append(" }");
         return stringBuilder.toString();
     }

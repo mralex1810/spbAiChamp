@@ -3,191 +3,281 @@ package spb_ai_champ.model;
 import spb_ai_champ.util.StreamUtil;
 
 /**
- * TODO - Document
+ * Current game's state
  */
 public class Game {
     /**
-     * TODO - Document
+     * Your player's index
      */
     private int myIndex;
 
     /**
-     * TODO - Document
+     * Your player's index
      */
     public int getMyIndex() {
         return myIndex;
     }
 
     /**
-     * TODO - Document
+     * Your player's index
      */
     public void setMyIndex(int value) {
         this.myIndex = value;
     }
     /**
-     * TODO - Document
+     * Current tick number
      */
     private int currentTick;
 
     /**
-     * TODO - Document
+     * Current tick number
      */
     public int getCurrentTick() {
         return currentTick;
     }
 
     /**
-     * TODO - Document
+     * Current tick number
      */
     public void setCurrentTick(int value) {
         this.currentTick = value;
     }
     /**
-     * TODO - Document
+     * Max number of ticks in the game
      */
     private int maxTickCount;
 
     /**
-     * TODO - Document
+     * Max number of ticks in the game
      */
     public int getMaxTickCount() {
         return maxTickCount;
     }
 
     /**
-     * TODO - Document
+     * Max number of ticks in the game
      */
     public void setMaxTickCount(int value) {
         this.maxTickCount = value;
     }
     /**
-     * TODO - Document
+     * List of players
      */
     private spb_ai_champ.model.Player[] players;
 
     /**
-     * TODO - Document
+     * List of players
      */
     public spb_ai_champ.model.Player[] getPlayers() {
         return players;
     }
 
     /**
-     * TODO - Document
+     * List of players
      */
     public void setPlayers(spb_ai_champ.model.Player[] value) {
         this.players = value;
     }
     /**
-     * TODO - Document
+     * List of planets
      */
     private spb_ai_champ.model.Planet[] planets;
 
     /**
-     * TODO - Document
+     * List of planets
      */
     public spb_ai_champ.model.Planet[] getPlanets() {
         return planets;
     }
 
     /**
-     * TODO - Document
+     * List of planets
      */
     public void setPlanets(spb_ai_champ.model.Planet[] value) {
         this.planets = value;
     }
     /**
-     * TODO - Document
+     * List of flying worker groups
      */
     private spb_ai_champ.model.FlyingWorkerGroup[] flyingWorkerGroups;
 
     /**
-     * TODO - Document
+     * List of flying worker groups
      */
     public spb_ai_champ.model.FlyingWorkerGroup[] getFlyingWorkerGroups() {
         return flyingWorkerGroups;
     }
 
     /**
-     * TODO - Document
+     * List of flying worker groups
      */
     public void setFlyingWorkerGroups(spb_ai_champ.model.FlyingWorkerGroup[] value) {
         this.flyingWorkerGroups = value;
     }
     /**
-     * TODO - Document
+     * Max number of flying worker groups for one player
      */
     private int maxFlyingWorkerGroups;
 
     /**
-     * TODO - Document
+     * Max number of flying worker groups for one player
      */
     public int getMaxFlyingWorkerGroups() {
         return maxFlyingWorkerGroups;
     }
 
     /**
-     * TODO - Document
+     * Max number of flying worker groups for one player
      */
     public void setMaxFlyingWorkerGroups(int value) {
         this.maxFlyingWorkerGroups = value;
     }
     /**
-     * TODO - Document
+     * Max distance of direct travel between planets
      */
     private int maxTravelDistance;
 
     /**
-     * TODO - Document
+     * Max distance of direct travel between planets
      */
     public int getMaxTravelDistance() {
         return maxTravelDistance;
     }
 
     /**
-     * TODO - Document
+     * Max distance of direct travel between planets
      */
     public void setMaxTravelDistance(int value) {
         this.maxTravelDistance = value;
     }
     /**
-     * TODO - Document
+     * Additional distance of direct travel between planets for player with Logistics specialty
+     */
+    private int logisticsUpgrade;
+
+    /**
+     * Additional distance of direct travel between planets for player with Logistics specialty
+     */
+    public int getLogisticsUpgrade() {
+        return logisticsUpgrade;
+    }
+
+    /**
+     * Additional distance of direct travel between planets for player with Logistics specialty
+     */
+    public void setLogisticsUpgrade(int value) {
+        this.logisticsUpgrade = value;
+    }
+    /**
+     * Additional work done by player with Production specialty (in percent)
+     */
+    private int productionUpgrade;
+
+    /**
+     * Additional work done by player with Production specialty (in percent)
+     */
+    public int getProductionUpgrade() {
+        return productionUpgrade;
+    }
+
+    /**
+     * Additional work done by player with Production specialty (in percent)
+     */
+    public void setProductionUpgrade(int value) {
+        this.productionUpgrade = value;
+    }
+    /**
+     * Additional strength workers for player with Combat specialty (in percent)
+     */
+    private int combatUpgrade;
+
+    /**
+     * Additional strength workers for player with Combat specialty (in percent)
+     */
+    public int getCombatUpgrade() {
+        return combatUpgrade;
+    }
+
+    /**
+     * Additional strength workers for player with Combat specialty (in percent)
+     */
+    public void setCombatUpgrade(int value) {
+        this.combatUpgrade = value;
+    }
+    /**
+     * Max number of workers performing building on one planet
      */
     private int maxBuilders;
 
     /**
-     * TODO - Document
+     * Max number of workers performing building on one planet
      */
     public int getMaxBuilders() {
         return maxBuilders;
     }
 
     /**
-     * TODO - Document
+     * Max number of workers performing building on one planet
      */
     public void setMaxBuilders(int value) {
         this.maxBuilders = value;
     }
     /**
-     * TODO - Document
+     * Properties of every building type
      */
     private java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> buildingProperties;
 
     /**
-     * TODO - Document
+     * Properties of every building type
      */
     public java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> getBuildingProperties() {
         return buildingProperties;
     }
 
     /**
-     * TODO - Document
+     * Properties of every building type
      */
     public void setBuildingProperties(java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> value) {
         this.buildingProperties = value;
     }
+    /**
+     * Whether choosing specialties is allowed
+     */
+    private boolean specialtiesAllowed;
 
-    public Game(int myIndex, int currentTick, int maxTickCount, spb_ai_champ.model.Player[] players, spb_ai_champ.model.Planet[] planets, spb_ai_champ.model.FlyingWorkerGroup[] flyingWorkerGroups, int maxFlyingWorkerGroups, int maxTravelDistance, int maxBuilders, java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> buildingProperties) {
+    /**
+     * Whether choosing specialties is allowed
+     */
+    public boolean isSpecialtiesAllowed() {
+        return specialtiesAllowed;
+    }
+
+    /**
+     * Whether choosing specialties is allowed
+     */
+    public void setSpecialtiesAllowed(boolean value) {
+        this.specialtiesAllowed = value;
+    }
+    /**
+     * View distance
+     */
+    private Integer viewDistance;
+
+    /**
+     * View distance
+     */
+    public Integer getViewDistance() {
+        return viewDistance;
+    }
+
+    /**
+     * View distance
+     */
+    public void setViewDistance(Integer value) {
+        this.viewDistance = value;
+    }
+
+    public Game(int myIndex, int currentTick, int maxTickCount, spb_ai_champ.model.Player[] players, spb_ai_champ.model.Planet[] planets, spb_ai_champ.model.FlyingWorkerGroup[] flyingWorkerGroups, int maxFlyingWorkerGroups, int maxTravelDistance, int logisticsUpgrade, int productionUpgrade, int combatUpgrade, int maxBuilders, java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> buildingProperties, boolean specialtiesAllowed, Integer viewDistance) {
         this.myIndex = myIndex;
         this.currentTick = currentTick;
         this.maxTickCount = maxTickCount;
@@ -196,8 +286,13 @@ public class Game {
         this.flyingWorkerGroups = flyingWorkerGroups;
         this.maxFlyingWorkerGroups = maxFlyingWorkerGroups;
         this.maxTravelDistance = maxTravelDistance;
+        this.logisticsUpgrade = logisticsUpgrade;
+        this.productionUpgrade = productionUpgrade;
+        this.combatUpgrade = combatUpgrade;
         this.maxBuilders = maxBuilders;
         this.buildingProperties = buildingProperties;
+        this.specialtiesAllowed = specialtiesAllowed;
+        this.viewDistance = viewDistance;
     }
 
     /**
@@ -235,6 +330,12 @@ public class Game {
         maxFlyingWorkerGroups = StreamUtil.readInt(stream);
         int maxTravelDistance;
         maxTravelDistance = StreamUtil.readInt(stream);
+        int logisticsUpgrade;
+        logisticsUpgrade = StreamUtil.readInt(stream);
+        int productionUpgrade;
+        productionUpgrade = StreamUtil.readInt(stream);
+        int combatUpgrade;
+        combatUpgrade = StreamUtil.readInt(stream);
         int maxBuilders;
         maxBuilders = StreamUtil.readInt(stream);
         java.util.Map<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> buildingProperties;
@@ -247,7 +348,15 @@ public class Game {
             buildingPropertiesValue = spb_ai_champ.model.BuildingProperties.readFrom(stream);
             buildingProperties.put(buildingPropertiesKey, buildingPropertiesValue);
         }
-        return new Game(myIndex, currentTick, maxTickCount, players, planets, flyingWorkerGroups, maxFlyingWorkerGroups, maxTravelDistance, maxBuilders, buildingProperties);
+        boolean specialtiesAllowed;
+        specialtiesAllowed = StreamUtil.readBoolean(stream);
+        Integer viewDistance;
+        if (StreamUtil.readBoolean(stream)) {
+            viewDistance = StreamUtil.readInt(stream);
+        } else {
+            viewDistance = null;
+        }
+        return new Game(myIndex, currentTick, maxTickCount, players, planets, flyingWorkerGroups, maxFlyingWorkerGroups, maxTravelDistance, logisticsUpgrade, productionUpgrade, combatUpgrade, maxBuilders, buildingProperties, specialtiesAllowed, viewDistance);
     }
 
     /**
@@ -271,6 +380,9 @@ public class Game {
         }
         StreamUtil.writeInt(stream, maxFlyingWorkerGroups);
         StreamUtil.writeInt(stream, maxTravelDistance);
+        StreamUtil.writeInt(stream, logisticsUpgrade);
+        StreamUtil.writeInt(stream, productionUpgrade);
+        StreamUtil.writeInt(stream, combatUpgrade);
         StreamUtil.writeInt(stream, maxBuilders);
         StreamUtil.writeInt(stream, buildingProperties.size());
         for (java.util.Map.Entry<spb_ai_champ.model.BuildingType, spb_ai_champ.model.BuildingProperties> buildingPropertiesEntry : buildingProperties.entrySet()) {
@@ -278,6 +390,13 @@ public class Game {
             StreamUtil.writeInt(stream, buildingPropertiesKey.tag);
             spb_ai_champ.model.BuildingProperties buildingPropertiesValue = buildingPropertiesEntry.getValue();
             buildingPropertiesValue.writeTo(stream);
+        }
+        StreamUtil.writeBoolean(stream, specialtiesAllowed);
+        if (viewDistance == null) {
+            StreamUtil.writeBoolean(stream, false);
+        } else {
+            StreamUtil.writeBoolean(stream, true);
+            StreamUtil.writeInt(stream, viewDistance);
         }
     }
 
@@ -335,11 +454,26 @@ public class Game {
         stringBuilder.append("maxTravelDistance: ");
         stringBuilder.append(String.valueOf(maxTravelDistance));
         stringBuilder.append(", ");
+        stringBuilder.append("logisticsUpgrade: ");
+        stringBuilder.append(String.valueOf(logisticsUpgrade));
+        stringBuilder.append(", ");
+        stringBuilder.append("productionUpgrade: ");
+        stringBuilder.append(String.valueOf(productionUpgrade));
+        stringBuilder.append(", ");
+        stringBuilder.append("combatUpgrade: ");
+        stringBuilder.append(String.valueOf(combatUpgrade));
+        stringBuilder.append(", ");
         stringBuilder.append("maxBuilders: ");
         stringBuilder.append(String.valueOf(maxBuilders));
         stringBuilder.append(", ");
         stringBuilder.append("buildingProperties: ");
         stringBuilder.append(String.valueOf(buildingProperties));
+        stringBuilder.append(", ");
+        stringBuilder.append("specialtiesAllowed: ");
+        stringBuilder.append(String.valueOf(specialtiesAllowed));
+        stringBuilder.append(", ");
+        stringBuilder.append("viewDistance: ");
+        stringBuilder.append(String.valueOf(viewDistance));
         stringBuilder.append(" }");
         return stringBuilder.toString();
     }
