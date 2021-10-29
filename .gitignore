@@ -2,4 +2,6 @@
 /target
 .*
 /app-linux
-
+spbaichamp.exe
+/assets
+*.class*

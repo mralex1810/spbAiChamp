@@ -52,16 +52,19 @@ public class BuildRequest implements Comparable<BuildRequest> {
 
     public int needSendToStone() {
         return
-                -sentRobotsToStone + quarryProperties.get(buildingType).getBuildResources().getOrDefault(Resource.STONE, 0);
+                Math.max(0, quarryProperties.get(buildingType).getBuildResources().getOrDefault(Resource.STONE, 0) - sentRobotsToStone);
     }
 
     public int needSendFromStone() {
-        return Math.max(0, Math.min(sentRobotsToStone - sentRobotsFromStone,
-                -sentRobotsFromStone + quarryProperties.get(buildingType).getBuildResources().getOrDefault(Resource.STONE, 0)));
+        return Math.min(sentRobotsToStone - sentRobotsFromStone,
+                quarryProperties.get(buildingType).getBuildResources().getOrDefault(Resource.STONE, 0) - sentRobotsFromStone);
     }
 
     @Override
     public int compareTo(BuildRequest buildRequest) {
+        if (buildingType == buildRequest.buildingType && planetIndex == buildRequest.getPlanetIndex()) {
+            return 0;
+        }
         if (buildingType.tag - buildRequest.getBuildingType().tag != 0) {
             return buildingType.tag - buildRequest.getBuildingType().tag;
         } else if (tickStarted - buildRequest.tickStarted != 0) {
@@ -73,7 +76,7 @@ public class BuildRequest implements Comparable<BuildRequest> {
     @Override
     public String toString() {
         return "BuildRequest{" +
-                ", planetIndex=" + planetIndex +
+                "planetIndex=" + planetIndex +
                 ", buildingType=" + buildingType +
                 ", sentRobotsToStone=" + sentRobotsToStone +
                 ", sentRobotsFromStone=" + sentRobotsFromStone +
