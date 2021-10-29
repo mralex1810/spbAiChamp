@@ -62,13 +62,8 @@ public class BuildRequest implements Comparable<BuildRequest> {
 
     @Override
     public int compareTo(BuildRequest buildRequest) {
-        if (buildingType == buildRequest.buildingType && planetIndex == buildRequest.getPlanetIndex()) {
-            return 0;
-        }
         if (buildingType.tag - buildRequest.getBuildingType().tag != 0) {
             return buildingType.tag - buildRequest.getBuildingType().tag;
-        } else if (tickStarted - buildRequest.tickStarted != 0) {
-            return tickStarted - buildRequest.tickStarted;
         }
         return planetIndex - buildRequest.getPlanetIndex();
     }

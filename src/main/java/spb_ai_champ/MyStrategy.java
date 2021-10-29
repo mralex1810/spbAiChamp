@@ -289,8 +289,7 @@ public class MyStrategy {
                     buildActions.add(new BuildingAction(planetIndex, buildingType));
                 }
                 if (planets[planetIndex].getBuilding() == null) {
-                    BuildRequest buildRequest = new BuildRequest(game.getCurrentTick(), planetIndex, buildingType, quarryProperties);
-                    buildRequests.add(buildRequest);
+                    buildRequests.add(new BuildRequest(game.getCurrentTick(), planetIndex, buildingType, quarryProperties));
                 }
             }
         }
@@ -312,7 +311,6 @@ public class MyStrategy {
             }
             workersOnPlanet[planetIndex] = myWorkers;
         }
-        System.out.println(workersOnPlanet[homePlanet]);
         {
             List<BuildRequest> toDelete = new ArrayList<>();
             for (BuildRequest buildRequest : buildRequests) {
@@ -320,7 +318,6 @@ public class MyStrategy {
                     toDelete.add(buildRequest);
                 }
                 if (game.getCurrentTick() == buildRequest.getTickStarted() + 50 && buildRequest.getSentRobotsFromStone() < buildRequest.getSentRobotsToStone()) {
-                    System.out.println("Hello");
                     buildRequest.setSentRobotsToStone(buildRequest.getSentRobotsFromStone());
                 }
             }
@@ -365,7 +362,6 @@ public class MyStrategy {
                                 workersOnPlanet[planetIndex]);
                         break;
                     }
-                    System.out.println(needSend);
                     moveActions.add(new MoveAction(planetIndex, buildRequest.getPlanetIndex(), needSend, Resource.STONE));
                     homePlanetStone -= needSend;
                     buildRequest.setSentRobotsFromStone(buildRequest.getSentRobotsFromStone() + needSend);
@@ -774,20 +770,32 @@ public class MyStrategy {
                         for (BuildingType recycler : recyclingBuilding.get(sendRes)) {
                             for (int recyclerIndex : thisCondition.get(recycler)) {
 //                                System.out.println(sender + " " + recycler);
-                                value += (3f) * (1f / thisCondition.get(sender).size()) *
-                                        (float) planetsDistance[senderIndex][recyclerIndex] *
+                                value += (20f) * (1f / thisCondition.get(sender).size()) *
+                                        planetsDistance[senderIndex][recyclerIndex] *
                                         getResToOneRobot(sender, recycler);
                             }
                         }
                     }
                 }
             }
-//            System.out.print(thisCondition + " " + value + " ");
-            for (BuildingType sender : BuildingType.values()) {
-                for (int senderIndex : thisCondition.get(sender)) {
-                    value += (8f / 2f) * (planetsDistance[homePlanet][senderIndex]);
+            for (BuildingType startBuilding : BuildingType.values()) {
+                for (BuildingType endBuilding : BuildingType.values()){
+                    for (int startIndex : thisCondition.get(startBuilding)) {
+                        for (int endIndex : thisCondition.get(endBuilding)) {
+                            value += (1 / 1f) * planetsDistance[startIndex][endIndex];
+                        }
+                    }
                 }
             }
+//            System.out.print(thisCondition + " " + value + " ");
+            int maxDist = 0;
+            for (BuildingType sender : BuildingType.values()) {
+                for (int senderIndex : thisCondition.get(sender)) {
+                    value += (15f / 2f) * (planetsDistance[homePlanet][senderIndex]);
+                    maxDist = Math.max(planetsDistance[homePlanet][senderIndex], maxDist);
+                }
+            }
+            value += (150f / 2) * maxDist;
 //            System.out.println(value);
             return value;
         }
@@ -921,9 +929,9 @@ public class MyStrategy {
                                             float value = estimateCondition(condition);
                                             if (value < bestValueOfCondition) {
 //                                                System.out.println("first " + value + " " + bestValueOfCondition + " " + condition);
-                                                bestCondition = copyMap(condition);
+                                                bestCondition = condition;
 //                                                System.out.println("second " + value + " " + bestValueOfCondition + " " + bestCondition);
-                                                bestValueOfCondition = estimateCondition(bestCondition);
+                                                bestValueOfCondition = value;
                                             }
                                         }
                                         used[accumulatorPlanet] = false;
