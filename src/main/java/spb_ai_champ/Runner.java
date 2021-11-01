@@ -50,8 +50,9 @@ public class Runner {
     }
 
     public static void burst() {
-        for(int i = 0; i < 10000; i++) {
+        for(int i = 0; i < 100000; i++) {
             MyStrategy myStrategy = new MyStrategy();
+            myStrategy.burst();
         }
     }
 
